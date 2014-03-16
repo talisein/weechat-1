@@ -105,6 +105,7 @@ AH_VERBATIM([HAVE_ASPELL_VERSION_STRING], [#undef HAVE_ASPELL_VERSION_STRING])
 AH_VERBATIM([PLUGIN_ALIAS], [#undef PLUGIN_ALIAS])
 AH_VERBATIM([PLUGIN_ASPELL], [#undef PLUGIN_ASPELL])
 AH_VERBATIM([PLUGIN_CHARSET], [#undef PLUGIN_CHARSET])
+AH_VERBATIM([PLUGIN_DBUS], [#undef PLUGIN_DBUS])
 AH_VERBATIM([PLUGIN_EXEC], [#undef PLUGIN_EXEC])
 AH_VERBATIM([PLUGIN_FIFO], [#undef PLUGIN_FIFO])
 AH_VERBATIM([PLUGIN_IRC], [#undef PLUGIN_IRC])
@@ -134,6 +135,7 @@ AC_ARG_ENABLE(alias,        [  --disable-alias         turn off Alias plugin (de
 AC_ARG_ENABLE(aspell,       [  --disable-aspell        turn off Aspell plugin (default=compiled)],enable_aspell=$enableval,enable_aspell=yes)
 AC_ARG_ENABLE(enchant,      [  --enable-enchant        turn on Enchant lib for Aspell plugin (default=off)],enable_enchant=$enableval,enable_enchant=no)
 AC_ARG_ENABLE(charset,      [  --disable-charset       turn off Charset plugin (default=compiled if found)],enable_charset=$enableval,enable_charset=yes)
+AC_ARG_ENABLE(dbus,         [  --disable-dbus          turn off DBus plugin (default=compiled)],enable_dbus=$enableval,enable_dbus=yes)
 AC_ARG_ENABLE(exec,         [  --disable-exec          turn off Exec plugin (default=compiled)],enable_exec=$enableval,enable_exec=yes)
 AC_ARG_ENABLE(fifo,         [  --disable-fifo          turn off Fifo plugin (default=compiled)],enable_fifo=$enableval,enable_fifo=yes)
 AC_ARG_ENABLE(irc,          [  --disable-irc           turn off IRC plugin (default=compiled)],enable_irc=$enableval,enable_irc=yes)
@@ -361,6 +363,36 @@ if test "x$enable_charset" = "xyes" ; then
     AC_DEFINE(PLUGIN_CHARSET)
 else
     not_asked="$not_asked charset"
+fi
+
+# ---------------------------------- dbus --------------------------------------
+
+
+if test "x$enable_dbus" = "xyes" ; then
+    DBUS_CFLAGS=""
+    DBUS_LFLAGS=""
+    DBUS_VERSION=""
+    pkgconfig_dbus_found=`$PKGCONFIG --exists dbus-1 2>/dev/null`
+    if test "x$?" = "x0" ; then
+        DBUS_VERSION=`$PKGCONFIG --modversion dbus-1`
+        DBUS_CFLAGS=`$PKGCONFIG --cflags dbus-1`
+        DBUS_LFLAGS=`$PKGCONFIG --libs dbus-1`
+    fi
+
+    if test "x$DBUS_CFLAGS" = "x" -o "x$DBUS_LFLAGS" = "x" ; then
+        AC_MSG_WARN([
+*** libdbus must be installed on your system.])
+            enable_dbus="no"
+            not_found="$not_found dbus"
+    fi
+else
+    not_asked="$not_asked dbus"
+fi
+
+if test "x$enable_dbus" = "xyes" ; then
+    AC_SUBST(DBUS_CFLAGS)
+    AC_SUBST(DBUS_LFLAGS)
+    AC_DEFINE(PLUGIN_DBUS)
 fi
 
 # ---------------------------------- exec --------------------------------------
@@ -1199,6 +1231,7 @@ AC_OUTPUT([Makefile
            src/plugins/alias/Makefile
            src/plugins/aspell/Makefile
            src/plugins/charset/Makefile
+           src/plugins/dbus/Makefile
            src/plugins/exec/Makefile
            src/plugins/fifo/Makefile
            src/plugins/irc/Makefile
@@ -1243,6 +1276,9 @@ if test "x$enable_aspell" = "xyes"; then
 fi
 if test "x$enable_charset" = "xyes"; then
     listplugins="$listplugins charset"
+fi
+if test "x$enable_dbus" = "xyes"; then
+    listplugins="$listplugins dbus"
 fi
 if test "x$enable_exec" = "xyes"; then
     listplugins="$listplugins exec"

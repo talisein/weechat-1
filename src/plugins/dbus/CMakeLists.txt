@@ -1,0 +1,34 @@
+#
+# Copyright (C) 2014 Andrew Potter <agpotter@gmail.com>
+#
+# This file is part of WeeChat, the extensible chat client.
+#
+# WeeChat is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# WeeChat is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+ADD_LIBRARY(dbus MODULE
+dbus.c dbus.h dbus-mainloop.c dbus-mainloop.h
+)
+
+SET_TARGET_PROPERTIES(dbus PROPERTIES PREFIX "")
+
+IF(DBUS_FOUND)
+  INCLUDE_DIRECTORIES(${DBUS_INCLUDE_DIR} ${DBUS_ARCH_INCLUDE_DIR})
+  SET(LINK_LIBS)
+  LIST(APPEND LINK_LIBS ${DBUS_LDFLAGS})
+  SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${DBUS_LFLAGS}")
+  TARGET_LINK_LIBRARIES(dbus ${LINK_LIBS} ${DBUS_LIBRARIES})
+ENDIF(DBUS_FOUND)
+
+INSTALL(TARGETS dbus LIBRARY DESTINATION ${LIBDIR}/plugins)

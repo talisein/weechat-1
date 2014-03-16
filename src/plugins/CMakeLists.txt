@@ -72,6 +72,13 @@ if(ENABLE_CHARSET)
   endif()
 endif()
 
+if(ENABLE_DBUS)
+  find_package(DBus)
+  if(DBUS_FOUND)
+    add_subdirectory( dbus )
+  endif(DBUS_FOUND)
+endif(ENABLE_DBUS)
+
 if(ENABLE_EXEC)
   add_subdirectory(exec)
 endif()

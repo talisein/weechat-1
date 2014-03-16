@@ -90,6 +90,7 @@ PLUGIN_LIST = {
     'alias': '',
     'aspell': 'o',
     'charset': 'o',
+    'dbus': 'o',
     'exec': 'o',
     'fifo': 'o',
     'irc': 'co',
