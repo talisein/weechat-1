@@ -17,21 +17,17 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WEECHAT_DBUS_H
-#define __WEECHAT_DBUS_H 1
+#ifndef __WEECHAT_DBUS_SIGNAL_H
+#define __WEECHAT_DBUS_SIGNAL_H 1
 
-#define weechat_plugin weechat_dbus_plugin
-#define DBUS_PLUGIN_NAME "dbus"
 
 struct t_dbus_signal_ctx;
+struct t_dbus_ctx;
 
-struct t_dbus_ctx
-{
-    struct DBusConnection *conn;      /* Connection to Session Bus          */
-    struct t_hook *dispatch;          /* Timeout hook for dbus dispatch     */
-    struct t_dbus_signal_ctx *sigctx; /* Context for hooked signals         */
-};
+int
+weechat_dbus_hook_signals(struct t_dbus_ctx *ctx);
 
-extern struct t_weechat_plugin *weechat_dbus_plugin;
+void
+weechat_dbus_unhook_signals(struct t_dbus_ctx *ctx);
 
-#endif /* __WEECHAT_DBUS_H */
+#endif /* __WEECHAT_DBUS_SIGNAL_H */

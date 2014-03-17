@@ -30,6 +30,7 @@
 #include "../weechat-plugin.h"
 #include "dbus.h"
 #include "dbus-mainloop.h"
+#include "dbus-signal.h"
 
 WEECHAT_PLUGIN_NAME(DBUS_PLUGIN_NAME);
 WEECHAT_PLUGIN_DESCRIPTION(N_("Extension of WeeChat signals to DBus"));
@@ -189,7 +190,7 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
-    /* Register on the session bus */
+    /* Register on the session bus. Technically this is blocking... */
     dbus_bus_register(ctx->conn, &err);
     if (dbus_error_is_set(&err)) {
         weechat_printf (NULL,
@@ -199,12 +200,14 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         dbus_error_free(&err);
         goto error;
     }
-    const char *name = dbus_bus_get_unique_name(ctx->conn);
-    weechat_printf (NULL, "%s: Unique name is %s", DBUS_PLUGIN_NAME, name);
 
-//    DBusMessage *msg = dbus_message_new_signal("/org/weechat/dbus",
-//                                               "org.weechat.Pingtest",
-//                                               "Pingtest");
+    if (0 < weechat_dbus_hook_signals(ctx))
+    {
+        weechat_printf (NULL,
+                        _("%s%s: Error hooking signals"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        goto error;
+    }
 
     return WEECHAT_RC_OK;
 error:
@@ -227,6 +230,7 @@ weechat_plugin_end (struct t_weechat_plugin *plugin)
     /* make C compiler happy */
     (void) plugin;
 
+    if (ctx->sigctx) weechat_dbus_unhook_signals(ctx);
     if (ctx->conn) dbus_connection_unref(ctx->conn);
     free(ctx);
 

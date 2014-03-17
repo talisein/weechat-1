@@ -26,6 +26,10 @@ lib_LTLIBRARIES = dbus.la
 dbus_la_SOURCES = dbus.c \
                   dbus-mainloop.c \
                   dbus-mainloop.h \
+                  dbus-signal.c   \
+                  dbus-signal.h   \
+                  dbus-infolist.c \
+                  dbus-infolist.h \
                   dbus.h
 
 dbus_la_LDFLAGS = -module -no-undefined
