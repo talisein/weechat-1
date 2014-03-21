@@ -23,6 +23,10 @@
 #define weechat_plugin weechat_dbus_plugin
 #define DBUS_PLUGIN_NAME "dbus"
 
+extern const char WEECHAT_DBUS_OBJECT_CORE[];
+extern const char WEECHAT_DBUS_IFACE_CORE[];
+extern const char WEECHAT_DBUS_CORE_MEMBER_GET[];
+
 struct t_dbus_signal_ctx;
 
 struct t_dbus_ctx
@@ -30,6 +34,7 @@ struct t_dbus_ctx
     struct DBusConnection *conn;      /* Connection to Session Bus          */
     struct t_hook *dispatch;          /* Timeout hook for dbus dispatch     */
     struct t_dbus_signal_ctx *sigctx; /* Context for hooked signals         */
+    struct t_hashtable *hook_table;   /* Hashtable key'd on fd              */
 };
 
 extern struct t_weechat_plugin *weechat_dbus_plugin;
