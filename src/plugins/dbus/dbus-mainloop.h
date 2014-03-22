@@ -17,8 +17,8 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WEECHAT_DBUS_MAINLOOP_H
-#define __WEECHAT_DBUS_MAINLOOP_H 1
+#ifndef WEECHAT_DBUS_MAINLOOP_H
+#define WEECHAT_DBUS_MAINLOOP_H 1
 
 #include <dbus/dbus.h>
 
@@ -34,4 +34,4 @@ void        weechat_dbus_set_dispatch    (DBusConnection *connection,
                                           DBusDispatchStatus new_status,
                                           void *data);
 
-#endif /* __WEECHAT_DBUS_MAINLOOP_H */
+#endif /* WEECHAT_DBUS_MAINLOOP_H */

@@ -17,8 +17,8 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WEECHAT_DBUS_INFOLIST_H
-#define __WEECHAT_DBUS_INFOLIST_H 1
+#ifndef WEECHAT_DBUS_INFOLIST_H
+#define WEECHAT_DBUS_INFOLIST_H 1
 
 
 #include <dbus/dbus.h>
@@ -27,4 +27,4 @@
 int
 weechat_dbus_infolist_append (DBusMessage *msg, struct t_infolist *infolist);
 
-#endif /* __WEECHAT_DBUS_INFOLIST_H */
+#endif /* WEECHAT_DBUS_INFOLIST_H */
