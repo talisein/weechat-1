@@ -17,23 +17,12 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WEECHAT_DBUS_SIGNAL_H
-#define __WEECHAT_DBUS_SIGNAL_H 1
+#ifndef WEECHAT_DBUS_SIGNAL_H
+#define WEECHAT_DBUS_SIGNAL_H 1
 
 
 struct t_dbus_signal_ctx;
 struct t_dbus_ctx;
-
-extern const char WEECHAT_DBUS_OBJECT_SIGNAL[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_IRC[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_CORE[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_XFER[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_GUILE[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_LUA[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_PERL[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_PYTHON[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_RUBY[];
-extern const char WEECHAT_DBUS_IFACE_SIGNAL_TCL[];
 
 int
 weechat_dbus_hook_signals(struct t_dbus_ctx *ctx);
@@ -41,4 +30,4 @@ weechat_dbus_hook_signals(struct t_dbus_ctx *ctx);
 void
 weechat_dbus_unhook_signals(struct t_dbus_ctx *ctx);
 
-#endif /* __WEECHAT_DBUS_SIGNAL_H */
+#endif /* WEECHAT_DBUS_SIGNAL_H */

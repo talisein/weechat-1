@@ -26,6 +26,8 @@ lib_LTLIBRARIES = dbus.la
 dbus_la_SOURCES = dbus.c \
                   dbus-mainloop.c \
                   dbus-mainloop.h \
+                  dbus-strings.c  \
+                  dbus-strings.h  \
                   dbus-signal.c   \
                   dbus-signal.h   \
                   dbus-infolist.c \

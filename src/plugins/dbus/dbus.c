@@ -31,6 +31,7 @@
 #include "dbus.h"
 #include "dbus-mainloop.h"
 #include "dbus-signal.h"
+#include "dbus-strings.h"
 
 WEECHAT_PLUGIN_NAME(DBUS_PLUGIN_NAME);
 WEECHAT_PLUGIN_DESCRIPTION(N_("Extension of WeeChat signals to DBus"));
@@ -40,11 +41,6 @@ WEECHAT_PLUGIN_LICENSE(WEECHAT_LICENSE);
 
 struct t_weechat_plugin *weechat_dbus_plugin = NULL;
 struct t_dbus_ctx *ctx;
-
-
-const char WEECHAT_DBUS_OBJECT_CORE[]       = "/org/weechat/core";
-const char WEECHAT_DBUS_IFACE_CORE[]        = "org.weechat.core";
-const char WEECHAT_DBUS_CORE_MEMBER_GET[]   = "infoGet";
 
 /*
  * Prints dbus infos in WeeChat log file (usually for crash dump).
@@ -133,8 +129,10 @@ static DBusHandlerResult
 message_handler_core(DBusConnection *connection, DBusMessage *message, void *user_data)
 {
     (void) user_data;
-    if (dbus_message_has_interface(message, WEECHAT_DBUS_IFACE_CORE) &&
-        dbus_message_has_member(message, WEECHAT_DBUS_CORE_MEMBER_GET))
+    if (!dbus_message_has_interface(message, WEECHAT_DBUS_IFACE_CORE))
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+    if (dbus_message_has_member(message, WEECHAT_DBUS_MEMBER_CORE_INFOGET))
     {
         DBusError err;
         dbus_error_init(&err);
@@ -149,7 +147,7 @@ message_handler_core(DBusConnection *connection, DBusMessage *message, void *use
             reply = dbus_message_new_error_printf(message, DBUS_ERROR_INVALID_ARGS,
                                                   "Method %s requires signature ss. "
                                                   "The second string can be \"\".",
-                                                  WEECHAT_DBUS_CORE_MEMBER_GET);
+                                                  WEECHAT_DBUS_MEMBER_CORE_INFOGET);
             dbus_error_free(&err);
             if (!reply) return DBUS_HANDLER_RESULT_NEED_MEMORY;
             dbus_connection_send(connection, reply, NULL);
@@ -195,7 +193,7 @@ register_objects(void)
     gettable.unregister_function = unregister_handler_core;
     gettable.message_function = message_handler_core;
 
-    if (!dbus_connection_try_register_fallback(ctx->conn, "/org/weechat/core", &gettable, ctx, &err))
+    if (!dbus_connection_try_register_fallback(ctx->conn, WEECHAT_DBUS_OBJECT_CORE, &gettable, ctx, &err))
         goto error;
     if (dbus_error_is_set(&err)) {
         goto error;
@@ -204,9 +202,9 @@ register_objects(void)
     return;
 error:
         weechat_printf (NULL,
-                        _("%s%s: Error registering core: %s"),
+                        _("%s%s: Error registering %s: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
-                        err.message);
+                        WEECHAT_DBUS_OBJECT_CORE, err.message);
         dbus_error_free(&err);
 }
 
@@ -221,7 +219,7 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
     (void) argc;
     (void) argv;
 
-    weechat_plugin = plugin;
+    weechat_dbus_plugin = plugin;
 
     weechat_hook_signal ("debug_dump", &dbus_debug_dump_cb, NULL);
 
@@ -315,14 +313,14 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
-    dbus_bus_request_name(ctx->conn, "org.weechat",
+    dbus_bus_request_name(ctx->conn, WEECHAT_DBUS_NAME,
                           DBUS_NAME_FLAG_ALLOW_REPLACEMENT | DBUS_NAME_FLAG_DO_NOT_QUEUE,
                           &err);
     if (dbus_error_is_set(&err)) {
         weechat_printf (NULL,
-                        _("%s%s: Error registering org.weechat on DBus: %s"),
+                        _("%s%s: Error registering as '%s' on DBus: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
-                        err.message);
+                        WEECHAT_DBUS_NAME, err.message);
         dbus_error_free(&err);
         goto error;
     }
@@ -354,7 +352,9 @@ weechat_plugin_end (struct t_weechat_plugin *plugin)
 {
     /* make C compiler happy */
     (void) plugin;
-    dbus_bus_release_name(ctx->conn, "org.weechat", NULL);
+    weechat_dbus_plugin = NULL;
+
+    dbus_bus_release_name(ctx->conn, WEECHAT_DBUS_NAME, NULL);
 
     if (ctx->sigctx) weechat_dbus_unhook_signals(ctx);
     if (ctx->conn) dbus_connection_unref(ctx->conn);

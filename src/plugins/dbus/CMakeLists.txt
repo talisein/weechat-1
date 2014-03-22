@@ -18,7 +18,11 @@
 #
 
 ADD_LIBRARY(dbus MODULE
-dbus.c dbus.h dbus-mainloop.c dbus-mainloop.h dbus-signal.c dbus-signal.h dbus-infolist.c dbus-infolist.h
+dbus.c dbus.h
+dbus-mainloop.c dbus-mainloop.h
+dbus-signal.c dbus-signal.h
+dbus-infolist.c dbus-infolist.h
+dbus-strings.c dbus-strings.h
 )
 
 SET_TARGET_PROPERTIES(dbus PROPERTIES PREFIX "")

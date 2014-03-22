@@ -17,15 +17,11 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WEECHAT_DBUS_H
-#define __WEECHAT_DBUS_H 1
+#ifndef WEECHAT_DBUS_H
+#define WEECHAT_DBUS_H 1
 
 #define weechat_plugin weechat_dbus_plugin
 #define DBUS_PLUGIN_NAME "dbus"
-
-extern const char WEECHAT_DBUS_OBJECT_CORE[];
-extern const char WEECHAT_DBUS_IFACE_CORE[];
-extern const char WEECHAT_DBUS_CORE_MEMBER_GET[];
 
 struct t_dbus_signal_ctx;
 
@@ -39,4 +35,4 @@ struct t_dbus_ctx
 
 extern struct t_weechat_plugin *weechat_dbus_plugin;
 
-#endif /* __WEECHAT_DBUS_H */
+#endif /* WEECHAT_DBUS_H */

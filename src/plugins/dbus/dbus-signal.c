@@ -25,17 +25,7 @@
 #include "dbus.h"
 #include "dbus-signal.h"
 #include "dbus-infolist.h"
-
-const char WEECHAT_DBUS_OBJECT_SIGNAL[]       = "/org/weechat/signal";
-const char WEECHAT_DBUS_IFACE_SIGNAL_IRC[]    = "org.weechat.signal.irc";
-const char WEECHAT_DBUS_IFACE_SIGNAL_CORE[]   = "org.weechat.signal.core";
-const char WEECHAT_DBUS_IFACE_SIGNAL_XFER[]   = "org.weechat.signal.xfer";
-const char WEECHAT_DBUS_IFACE_SIGNAL_GUILE[]  = "org.weechat.signal.guile";
-const char WEECHAT_DBUS_IFACE_SIGNAL_LUA[]    = "org.weechat.signal.lua";
-const char WEECHAT_DBUS_IFACE_SIGNAL_PERL[]   = "org.weechat.signal.perl";
-const char WEECHAT_DBUS_IFACE_SIGNAL_PYTHON[] = "org.weechat.signal.python";
-const char WEECHAT_DBUS_IFACE_SIGNAL_RUBY[]   = "org.weechat.signal.ruby";
-const char WEECHAT_DBUS_IFACE_SIGNAL_TCL[]    = "org.weechat.signal.tcl";
+#include "dbus-strings.h"
 
 
 static int
@@ -62,33 +52,33 @@ struct t_sigmap
 
 #define WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script) "org.weechat.signal." script
 
-#define SIGMAP_SCRIPT(script) {                                      \
-                                   script "_script_loaded",          \
-                                   WEECHAT_DBUS_OBJECT_SIGNAL,       \
-                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script), \
-                                   "script_loaded",                  \
-                                   &weechat_dbus_signal_cb_default   \
-                               },                                    \
-                               {                                     \
-                                   script "_script_unloaded",        \
-                                   WEECHAT_DBUS_OBJECT_SIGNAL,       \
-                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script), \
-                                   "script_unloaded",                \
-                                   &weechat_dbus_signal_cb_default   \
-                               },                                    \
-                               {                                     \
-                                   script "_script_installed",       \
-                                   WEECHAT_DBUS_OBJECT_SIGNAL,       \
-                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script), \
-                                   "script_isntalled",               \
-                                   &weechat_dbus_signal_cb_commalist \
-                               },                                    \
-                               {                                     \
-                                   script "_script_removed",         \
-                                   WEECHAT_DBUS_OBJECT_SIGNAL,       \
-                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script), \
-                                   "script_removed",                 \
-                                   &weechat_dbus_signal_cb_commalist \
+#define SIGMAP_SCRIPT(script) {                                                 \
+                                   script "_script_loaded",                     \
+                                   WEECHAT_DBUS_OBJECT_SIGNAL,                  \
+                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script),    \
+                                   WEECHAT_DBUS_MEMBER_SIGNAL_SCRIPT_LOADED,    \
+                                   &weechat_dbus_signal_cb_default              \
+                               },                                               \
+                               {                                                \
+                                   script "_script_unloaded",                   \
+                                   WEECHAT_DBUS_OBJECT_SIGNAL,                  \
+                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script),    \
+                                   WEECHAT_DBUS_MEMBER_SIGNAL_SCRIPT_UNLOADED,  \
+                                   &weechat_dbus_signal_cb_default              \
+                               },                                               \
+                               {                                                \
+                                   script "_script_installed",                  \
+                                   WEECHAT_DBUS_OBJECT_SIGNAL,                  \
+                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script),    \
+                                   WEECHAT_DBUS_MEMBER_SIGNAL_SCRIPT_INSTALLED, \
+                                   &weechat_dbus_signal_cb_commalist            \
+                               },                                               \
+                               {                                                \
+                                   script "_script_removed",                    \
+                                   WEECHAT_DBUS_OBJECT_SIGNAL,                  \
+                                   WEECHAT_DBUS_IFACE_SIGNAL_SCRIPT(script),    \
+                                   WEECHAT_DBUS_MEMBER_SIGNAL_SCRIPT_REMOVED,   \
+                                   &weechat_dbus_signal_cb_commalist            \
                                }
 
 struct t_sigmap sigmap[] =
@@ -97,189 +87,189 @@ struct t_sigmap sigmap[] =
         "*,irc_in2_*",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "in2",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_IN,
         &weechat_dbus_signal_cb_irc_inout
     },
     {
         "*,irc_out1_*",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "out1",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_OUT,
         &weechat_dbus_signal_cb_irc_inout
     },
     {
         "irc_ctcp",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "ctcp",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_CTCP,
         &weechat_dbus_signal_cb_default
     },
     {
         "irc_dcc",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "dcc",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_DCC,
         &weechat_dbus_signal_cb_default
     },
     {
         "irc_pv",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "pv",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_PV,
         &weechat_dbus_signal_cb_default
     },
     {
         "irc_server_connecting",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "server_connecting",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_SERVER_CONNECTING,
         &weechat_dbus_signal_cb_default
     },
     {
         "irc_server_connected",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "server_connected",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_SERVER_CONNECTED,
         &weechat_dbus_signal_cb_default
     },
     {
         "irc_server_disconnected",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "server_disconnected",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_SERVER_DISCONNECTED,
         &weechat_dbus_signal_cb_default
     },
     {
         "irc_notify_join",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "notify_join",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_JOIN,
         &weechat_dbus_signal_cb_commalist
     },
     {
         "irc_notify_quit",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "notify_quit",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_QUIT,
         &weechat_dbus_signal_cb_commalist
     },
     {
         "irc_notify_away",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "notify_away",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_AWAY,
         &weechat_dbus_signal_cb_commalist
     },
     {
         "irc_notify_still_away",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "notify_still_away",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_STILL_AWAY,
         &weechat_dbus_signal_cb_commalist
     },
     {
         "irc_notify_back",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
-        "notify_back",
+        WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_BACK,
         &weechat_dbus_signal_cb_commalist
     },
     {
         "day_changed",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_CORE,
-        "day_changed",
+        WEECHAT_DBUS_MEMBER_SIGNAL_CORE_DAY_CHANGED,
         &weechat_dbus_signal_cb_default
     },
     {
         "plugin_loaded",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_CORE,
-        "plugin_loaded",
+        WEECHAT_DBUS_MEMBER_SIGNAL_CORE_PLUGIN_LOADED,
         &weechat_dbus_signal_cb_default
     },
     {
         "plugin_unloaded",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_CORE,
-        "plugin_unloaded",
+        WEECHAT_DBUS_MEMBER_SIGNAL_CORE_PLUGIN_UNLOADED,
         &weechat_dbus_signal_cb_default
     },
     {
         "quit",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_CORE,
-        "quit",
+        WEECHAT_DBUS_MEMBER_SIGNAL_CORE_QUIT,
         &weechat_dbus_signal_cb_default
     },
     {
         "upgrade",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_CORE,
-        "upgrade",
+        WEECHAT_DBUS_MEMBER_SIGNAL_CORE_UPGRADE,
         &weechat_dbus_signal_cb_default
     },
     {
         "weechat_highlight",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_CORE,
-        "highlight",
+        WEECHAT_DBUS_MEMBER_SIGNAL_CORE_HIGHLIGHT,
         &weechat_dbus_signal_cb_default
     },
     {
         "weechat_pv",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_CORE,
-        "pv",
+        WEECHAT_DBUS_MEMBER_SIGNAL_CORE_PV,
         &weechat_dbus_signal_cb_default
     },
     {
         "xfer_add",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_XFER,
-        "add",
+        WEECHAT_DBUS_MEMBER_SIGNAL_XFER_ADD,
         &weechat_dbus_signal_cb_infolist
     },
     {
         "xfer_send_ready",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_XFER,
-        "send_ready",
+        WEECHAT_DBUS_MEMBER_SIGNAL_XFER_SEND_READY,
         &weechat_dbus_signal_cb_infolist
     },
     {
         "xfer_accept_resume",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_XFER,
-        "accept_resume",
+        WEECHAT_DBUS_MEMBER_SIGNAL_XFER_ACCEPT_RESUME,
         &weechat_dbus_signal_cb_infolist
     },
     {
         "xfer_send_accept_resume",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_XFER,
-        "send_accept_resume",
+        WEECHAT_DBUS_MEMBER_SIGNAL_XFER_SEND_ACCEPT_RESUME,
         &weechat_dbus_signal_cb_infolist
     },
     {
         "xfer_start_resume",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_XFER,
-        "start_resume",
+        WEECHAT_DBUS_MEMBER_SIGNAL_XFER_START_RESUME,
         &weechat_dbus_signal_cb_infolist
     },
     {
         "xfer_resume_ready",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_XFER,
-        "resume_ready",
+        WEECHAT_DBUS_MEMBER_SIGNAL_XFER_RESUME_READY,
         &weechat_dbus_signal_cb_infolist
     },
     {
         "xfer_ended",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_XFER,
-        "ended",
+        WEECHAT_DBUS_MEMBER_SIGNAL_XFER_ENDED,
         &weechat_dbus_signal_cb_infolist
     },
     SIGMAP_SCRIPT("guile"),
@@ -357,10 +347,13 @@ weechat_dbus_signal_cb_irc_inout (void *data,
     *p = '\0';
     msgtype = ++p;
 
+    int is_in = strncmp(WEECHAT_DBUS_MEMBER_SIGNAL_IRC_IN, name, strlen(name));
     const char *str = (char *)signal_data;
     DBusMessage *msg = dbus_message_new_signal (sigmap[0].path,
                                                 sigmap[0].iface,
-                                                name);
+                                                (0 == is_in) ?
+                                                WEECHAT_DBUS_MEMBER_SIGNAL_IRC_IN :
+                                                WEECHAT_DBUS_MEMBER_SIGNAL_IRC_OUT);
     if (!msg)
         goto error;
 
@@ -535,4 +528,3 @@ weechat_dbus_unhook_signals(struct t_dbus_ctx *ctx)
     free(ctx->sigctx);
     ctx->sigctx = NULL;
 }
-
