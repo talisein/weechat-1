@@ -17,8 +17,15 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if _POSIX_C_SOURCE >= 200112L
+#include <sys/select.h>
+#else
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 #include <stdlib.h>
-#include <poll.h>
 #include <errno.h>
 #include <string.h>
 #include <stdbool.h>
@@ -102,36 +109,51 @@ weechat_dbus_watch_cb(void *data, int fd)
     bool got_read = false;
     bool got_write = false;
     bool got_error = false;
-    /* libdbus wants the flags, so we need to do a nonblocking
-     * poll() */
+
+    if (fd != w->fd)
     {
-        short events = 0;
-        events |= w->hooked_read ? POLLIN:0;
-        events |= w->hooked_read ? POLLPRI:0;
-        events |= w->hooked_write ? POLLOUT:0;
-        events |= POLLERR | POLLHUP;
-    
-        struct pollfd pfd = {fd, events, 0};
-        int res = poll(&pfd, 1, 0);
+        weechat_printf (NULL,
+                        _("%s%s: fd associated to wrong watch"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        return WEECHAT_RC_OK;
+    }
+
+    /* libdbus wants the flags, so we need to do a nonblocking
+     * select() */
+    {
+        fd_set read_fds, write_fds, except_fds;
+        struct timeval tv = { 0, 0 };
+        FD_ZERO (&read_fds);
+        FD_ZERO (&write_fds);
+        FD_ZERO (&except_fds);
+
+        if (w->hooked_read)
+            FD_SET (fd, &read_fds);
+        if (w->hooked_write)
+            FD_SET (fd, &write_fds);
+        FD_SET (fd, &except_fds);
+
+        int res = select (fd + 1, &read_fds, &write_fds, &except_fds, &tv);
         if (res == 0)
         {
             weechat_printf (NULL,
-                            _("%s%s: Unexpected behavior in dbus plugin"),
+                            _("%s%s: Unexpected select() behavior"),
                             weechat_prefix ("error"), DBUS_PLUGIN_NAME);
-            return WEECHAT_RC_ERROR;
+            return WEECHAT_RC_OK;
         }
         if (res == -1)
         {
             int err = errno;
             weechat_printf (NULL,
-                            _("%s%s: Unexpected poll error in dbus plugin: %s"),
+                            _("%s%s: Unexpected select() error: %s"),
                             weechat_prefix ("error"), DBUS_PLUGIN_NAME,
-                            strerror(err));
-            return WEECHAT_RC_ERROR;
+                            strerror (err));
+            return WEECHAT_RC_OK;
         }
-        got_read = !!(pfd.revents & POLLIN) || !!(pfd.revents & POLLPRI);
-        got_write = !!(pfd.revents & POLLOUT);
-        got_error = !!(pfd.revents & POLLERR) || !!(pfd.revents & POLLHUP);
+
+        got_read = !!(FD_ISSET(fd, &read_fds));
+        got_write = !!(FD_ISSET(fd, &write_fds));
+        got_error = !!(FD_ISSET(fd, &except_fds));
     }
 
     if ((got_read || got_error) && w->read)
@@ -140,7 +162,7 @@ weechat_dbus_watch_cb(void *data, int fd)
         if (!ret)
         {
             weechat_printf (NULL,
-                            _("%s%s: not enough memory watch cb read"),
+                            _("%s%s: not enough memory"),
                             weechat_prefix ("error"), DBUS_PLUGIN_NAME);
             return WEECHAT_RC_OK;
         }
@@ -152,7 +174,7 @@ weechat_dbus_watch_cb(void *data, int fd)
         if (!ret)
         {
             weechat_printf (NULL,
-                            _("%s%s: not enough memory watch cb write"),
+                            _("%s%s: not enough memory"),
                             weechat_prefix ("error"), DBUS_PLUGIN_NAME);
             return WEECHAT_RC_OK;
         }
