@@ -73,5 +73,6 @@ extern const char WEECHAT_DBUS_MEMBER_SIGNAL_SCRIPT_REMOVED[];
 extern const char WEECHAT_DBUS_OBJECT_CORE[];
 extern const char WEECHAT_DBUS_IFACE_CORE[];
 extern const char WEECHAT_DBUS_MEMBER_CORE_INFOGET[];
+extern const char WEECHAT_DBUS_MEMBER_CORE_COMMAND[];
 
 #endif /* WEECHAT_STRINGS_H */

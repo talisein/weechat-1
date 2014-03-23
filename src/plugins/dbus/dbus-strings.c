@@ -72,5 +72,6 @@ const char WEECHAT_DBUS_MEMBER_SIGNAL_SCRIPT_REMOVED[]          = "scriptRemoved
 const char WEECHAT_DBUS_OBJECT_CORE[]                           = "/org/weechat/core";
 const char WEECHAT_DBUS_IFACE_CORE[]                            = "org.weechat.core";
 const char WEECHAT_DBUS_MEMBER_CORE_INFOGET[]                   = "infoGet";
+const char WEECHAT_DBUS_MEMBER_CORE_COMMAND[]                   = "command";
 
 
