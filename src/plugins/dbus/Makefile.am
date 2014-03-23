@@ -32,6 +32,8 @@ dbus_la_SOURCES = dbus.c \
                   dbus-signal.h   \
                   dbus-infolist.c \
                   dbus-infolist.h \
+                  dbus-methods-core.c \
+                  dbus-methods-core.h \
                   dbus.h
 
 dbus_la_LDFLAGS = -module -no-undefined

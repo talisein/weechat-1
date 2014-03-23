@@ -20,9 +20,10 @@
 ADD_LIBRARY(dbus MODULE
 dbus.c dbus.h
 dbus-mainloop.c dbus-mainloop.h
-dbus-signal.c dbus-signal.h
 dbus-infolist.c dbus-infolist.h
 dbus-strings.c dbus-strings.h
+dbus-signal.c dbus-signal.h
+dbus-methods-core.c dbus-methods-core.h
 )
 
 SET_TARGET_PROPERTIES(dbus PROPERTIES PREFIX "")
