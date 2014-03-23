@@ -22,7 +22,11 @@
 
 #include <dbus/dbus.h>
 
+struct t_dbus_ctx;
+
 /* Functions to facilitate WeeChat mainloop <-> libdbus interaction */
+int         weechat_dbus_hook_mainloop   (struct t_dbus_ctx *ctx);
+int         weechat_dbus_unhook_mainloop (struct t_dbus_ctx *ctx);
 
 dbus_bool_t weechat_dbus_add_watch       (DBusWatch *watch, void *data);
 void        weechat_dbus_remove_watch    (DBusWatch *watch, void *data);

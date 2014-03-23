@@ -34,6 +34,22 @@
 #include "dbus.h"
 #include "dbus-mainloop.h"
 
+struct t_dbus_mainloop_ctx
+{
+    struct t_hook *dispatch;          /* Timeout hook for dbus dispatch     */
+    struct t_hashtable *hook_table;   /* Hashtable key'd on fd              */
+};
+
+struct t_dbus_watch
+{
+    DBusWatch *read;
+    DBusWatch *write;
+    struct t_hook *hook;
+    int fd;
+    bool hooked_read;
+    bool hooked_write;
+};
+
 static void
 weechat_dbus_unhook (void *memory)
 {
@@ -53,10 +69,10 @@ weechat_dbus_dispatch(void *data, int remaining_calls)
     if (status == DBUS_DISPATCH_DATA_REMAINS)
         return WEECHAT_RC_OK;
 
-    if (ctx->dispatch)
+    if (ctx->main->dispatch)
     {
-        weechat_unhook (ctx->dispatch);
-        ctx->dispatch = NULL;
+        weechat_unhook (ctx->main->dispatch);
+        ctx->main->dispatch = NULL;
     }
 
     return WEECHAT_RC_OK;
@@ -76,30 +92,20 @@ weechat_dbus_set_dispatch(DBusConnection *connection, DBusDispatchStatus new_sta
                             weechat_prefix ("error"), DBUS_PLUGIN_NAME);
             /* Fallthrough */
         case DBUS_DISPATCH_COMPLETE:
-            if (ctx->dispatch)
+            if (ctx->main->dispatch)
             {
-                weechat_unhook (ctx->dispatch);
-                ctx->dispatch = NULL;
+                weechat_unhook (ctx->main->dispatch);
+                ctx->main->dispatch = NULL;
             }
             break;
         case DBUS_DISPATCH_DATA_REMAINS:
-            if (!ctx->dispatch)
+            if (!ctx->main->dispatch)
             {
-                ctx->dispatch = weechat_hook_timer (10, 0, 0, weechat_dbus_dispatch, data);
+                ctx->main->dispatch = weechat_hook_timer (10, 0, 0, weechat_dbus_dispatch, data);
             }
             break;
     };
 }
-
-struct t_dbus_watch
-{
-    DBusWatch *read;
-    DBusWatch *write;
-    struct t_hook *hook;
-    int fd;
-    bool hooked_read;
-    bool hooked_write;
-};
 
 
 static int
@@ -151,9 +157,9 @@ weechat_dbus_watch_cb(void *data, int fd)
             return WEECHAT_RC_OK;
         }
 
-        got_read = !!(FD_ISSET(fd, &read_fds));
-        got_write = !!(FD_ISSET(fd, &write_fds));
-        got_error = !!(FD_ISSET(fd, &except_fds));
+        got_read  = !!(FD_ISSET (fd, &read_fds));
+        got_write = !!(FD_ISSET (fd, &write_fds));
+        got_error = !!(FD_ISSET (fd, &except_fds));
     }
 
     if ((got_read || got_error) && w->read)
@@ -186,13 +192,13 @@ weechat_dbus_watch_cb(void *data, int fd)
 void
 weechat_dbus_watch_toggled(DBusWatch *watch, void *data)
 {
-    struct t_dbus_ctx *ctx = (struct t_dbus_ctx*)data;
-    struct t_dbus_watch *w = (struct t_dbus_watch*)dbus_watch_get_data(watch);
-    unsigned int flags = dbus_watch_get_flags(watch);
+    struct t_dbus_mainloop_ctx *ctx = (struct t_dbus_mainloop_ctx*)data;
+    struct t_dbus_watch *w = (struct t_dbus_watch*)dbus_watch_get_data (watch);
+    unsigned int flags = dbus_watch_get_flags (watch);
     bool is_read = !!(flags & DBUS_WATCH_READABLE);
     bool is_write = !!(flags & DBUS_WATCH_WRITABLE);
 
-    if (dbus_watch_get_enabled(watch))
+    if (dbus_watch_get_enabled (watch))
     {
 #if defined _WIN32 || defined __WIN32__ || defined __CYGWIN__
         int fd = dbus_watch_get_socket(watch);
@@ -294,13 +300,13 @@ weechat_dbus_watch_toggled(DBusWatch *watch, void *data)
 dbus_bool_t
 weechat_dbus_add_watch(DBusWatch *watch, void *data)
 {
-    struct t_dbus_ctx *ctx = (struct t_dbus_ctx*)data;
+    struct t_dbus_mainloop_ctx *ctx = (struct t_dbus_mainloop_ctx*)data;
 #if defined _WIN32 || defined __WIN32__ || defined __CYGWIN__
     int fd = dbus_watch_get_socket(watch);
 #else
     int fd = dbus_watch_get_unix_fd(watch);
 #endif
-    unsigned int flags = dbus_watch_get_flags(watch);
+    unsigned int flags = dbus_watch_get_flags (watch);
     bool is_read = !!(flags & DBUS_WATCH_READABLE);
     bool is_write = !!(flags & DBUS_WATCH_WRITABLE);
 
@@ -355,7 +361,7 @@ weechat_dbus_add_watch(DBusWatch *watch, void *data)
 void
 weechat_dbus_remove_watch(DBusWatch *watch, void *data)
 {
-    struct t_dbus_ctx *ctx = (struct t_dbus_ctx*)data;
+    struct t_dbus_mainloop_ctx *ctx = (struct t_dbus_mainloop_ctx*)data;
     struct t_dbus_watch *w = (struct t_dbus_watch*)dbus_watch_get_data (watch);
     
     if (w->read == watch)
@@ -414,8 +420,6 @@ weechat_dbus_timeout_cb(void *data, int remaining_calls)
 dbus_bool_t
 weechat_dbus_add_timeout(DBusTimeout *timeout, void *data)
 {
-    dbus_timeout_set_data (timeout, NULL, NULL);
-
     if (dbus_timeout_get_enabled (timeout))
         weechat_dbus_timeout_toggled (timeout, data);
 
@@ -434,17 +438,109 @@ void
 weechat_dbus_timeout_toggled(DBusTimeout *timeout, void *data)
 {
     (void) data;
-    struct t_hook *hook = (struct t_hook*) dbus_timeout_get_data (timeout);
     
     if (dbus_timeout_get_enabled (timeout))
     {
-        long interval = (long)dbus_timeout_get_interval (timeout);
-        hook = weechat_hook_timer (interval, 0, 0, &weechat_dbus_timeout_cb,
-                                   timeout);
-        dbus_timeout_set_data (timeout, hook, weechat_dbus_unhook);
+        long interval = dbus_timeout_get_interval (timeout);
+        if (interval > 0)
+        {
+            struct t_hook *hook = weechat_hook_timer (interval, 0, 0,
+                                                      &weechat_dbus_timeout_cb,
+                                                      timeout);
+            if (hook)
+                dbus_timeout_set_data (timeout, hook, weechat_dbus_unhook);
+        }
     }
     else
     {
         dbus_timeout_set_data (timeout, NULL, NULL);
     }
+}
+
+int
+weechat_dbus_hook_mainloop(struct t_dbus_ctx *ctx)
+{
+    ctx->main = calloc(1, sizeof(struct t_dbus_mainloop_ctx));
+    if (!ctx->main)
+    {
+        weechat_printf (NULL,
+                        _("%s%s: not enough memory"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        return -1;
+    }
+
+    ctx->main->hook_table = weechat_hashtable_new(8, WEECHAT_HASHTABLE_INTEGER,
+                                                  WEECHAT_HASHTABLE_POINTER,
+                                                  NULL, NULL);
+    if (!ctx->main->hook_table) {
+        weechat_printf (NULL,
+                        _("%s%s: not enough memory"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        goto error;
+    }
+
+    /* Set asynchronous handler functions */
+    dbus_connection_set_dispatch_status_function (ctx->conn,
+                                                  &weechat_dbus_set_dispatch,
+                                                  ctx, NULL);
+
+    if (!dbus_connection_set_watch_functions (ctx->conn,
+                                              &weechat_dbus_add_watch,
+                                              &weechat_dbus_remove_watch,
+                                              &weechat_dbus_watch_toggled,
+                                              ctx->main, NULL))
+    {
+        weechat_printf (NULL,
+                        _("%s%s: not enough memory"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        goto error;
+    }
+
+    if (!dbus_connection_set_timeout_functions(ctx->conn,
+                                               &weechat_dbus_add_timeout,
+                                               &weechat_dbus_remove_timeout,
+                                               &weechat_dbus_timeout_toggled,
+                                               ctx->main,
+                                               NULL))
+    {
+        weechat_printf (NULL,
+                        _("%s%s: not enough memory"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        goto error;
+    }
+
+    return 0;
+error:
+    if (ctx->main)
+    {
+        if (ctx->main->hook_table)
+            weechat_hashtable_free(ctx->main->hook_table);
+        free(ctx->main);
+        ctx->main = NULL;
+    }
+
+    return -1;
+}
+
+int
+weechat_dbus_unhook_mainloop(struct t_dbus_ctx *ctx)
+{
+    if (!ctx)
+        return 0;
+
+    if (ctx->main)
+    {
+        dbus_connection_set_dispatch_status_function(ctx->conn, NULL, NULL, NULL);
+        dbus_connection_set_watch_functions(ctx->conn, NULL, NULL, NULL, NULL, NULL);
+        dbus_connection_set_timeout_functions(ctx->conn, NULL, NULL, NULL, NULL, NULL);
+
+        if (ctx->main->dispatch)
+            weechat_unhook(ctx->main->dispatch);
+        if (ctx->main->hook_table)
+            weechat_hashtable_free(ctx->main->hook_table);
+        free(ctx->main);
+        ctx->main = NULL;
+    }
+
+    return 0;
 }

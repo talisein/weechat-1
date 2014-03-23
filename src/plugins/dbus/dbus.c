@@ -111,7 +111,7 @@ dbus_debug_dump_cb (void *data, const char *signal, const char *type_data,
 const char*
 weechat_dbus_get_session_bus_address(void)
 {
-    const char *var = getenv("DBUS_SESSION_BUS_ADDRESS");
+    const char *var = getenv ("DBUS_SESSION_BUS_ADDRESS");
     return var;
 }
 
@@ -129,52 +129,52 @@ static DBusHandlerResult
 message_handler_core(DBusConnection *connection, DBusMessage *message, void *user_data)
 {
     (void) user_data;
-    if (!dbus_message_has_interface(message, WEECHAT_DBUS_IFACE_CORE))
+    if (!dbus_message_has_interface (message, WEECHAT_DBUS_IFACE_CORE))
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-    if (dbus_message_has_member(message, WEECHAT_DBUS_MEMBER_CORE_INFOGET))
+    if (dbus_message_has_member (message, WEECHAT_DBUS_MEMBER_CORE_INFOGET))
     {
         DBusError err;
-        dbus_error_init(&err);
+        dbus_error_init (&err);
         const char *info_name = NULL, *arguments = NULL;
-        dbus_message_get_args(message, &err,
-                              DBUS_TYPE_STRING, &info_name,
-                              DBUS_TYPE_STRING, &arguments,
-                              DBUS_TYPE_INVALID);
+        dbus_message_get_args (message, &err,
+                               DBUS_TYPE_STRING, &info_name,
+                               DBUS_TYPE_STRING, &arguments,
+                               DBUS_TYPE_INVALID);
         if (dbus_error_is_set (&err))
         {
             DBusMessage *reply;
-            reply = dbus_message_new_error_printf(message, DBUS_ERROR_INVALID_ARGS,
+            reply = dbus_message_new_error_printf (message, DBUS_ERROR_INVALID_ARGS,
                                                   "Method %s requires signature ss. "
                                                   "The second string can be \"\".",
                                                   WEECHAT_DBUS_MEMBER_CORE_INFOGET);
-            dbus_error_free(&err);
+            dbus_error_free (&err);
             if (!reply) return DBUS_HANDLER_RESULT_NEED_MEMORY;
-            dbus_connection_send(connection, reply, NULL);
-            dbus_message_unref(reply);
+            dbus_connection_send (connection, reply, NULL);
+            dbus_message_unref (reply);
             return DBUS_HANDLER_RESULT_HANDLED;
         }
         else
         {
-            const char *ret = weechat_info_get(info_name, arguments);
+            const char *ret = weechat_info_get (info_name, arguments);
             if (ret)
             {
-                DBusMessage *reply = dbus_message_new_method_return(message);
+                DBusMessage *reply = dbus_message_new_method_return (message);
                 if (!reply) return DBUS_HANDLER_RESULT_NEED_MEMORY;
-                dbus_message_append_args(reply, DBUS_TYPE_STRING, &ret, DBUS_TYPE_INVALID);
-                dbus_connection_send(connection, reply, NULL);
-                dbus_message_unref(reply);
+                dbus_message_append_args (reply, DBUS_TYPE_STRING, &ret, DBUS_TYPE_INVALID);
+                dbus_connection_send (connection, reply, NULL);
+                dbus_message_unref (reply);
                 return DBUS_HANDLER_RESULT_HANDLED;
             }
             else
             {
                 DBusMessage *reply;
-                reply = dbus_message_new_error_printf(message, DBUS_ERROR_INVALID_ARGS,
-                                                      "info_name '%s' or argument is invalid",
-                                                      info_name);
+                reply = dbus_message_new_error_printf (message, DBUS_ERROR_INVALID_ARGS,
+                                                       "info_name '%s' or argument is invalid",
+                                                       info_name);
                 if (!reply) return DBUS_HANDLER_RESULT_NEED_MEMORY;
-                dbus_connection_send(connection, reply, NULL);
-                dbus_message_unref(reply);
+                dbus_connection_send (connection, reply, NULL);
+                dbus_message_unref (reply);
                 return DBUS_HANDLER_RESULT_HANDLED;
             }
         }
@@ -189,13 +189,13 @@ void
 register_objects(void)
 {
     DBusError err;
-    dbus_error_init(&err);
+    dbus_error_init (&err);
     gettable.unregister_function = unregister_handler_core;
     gettable.message_function = message_handler_core;
 
-    if (!dbus_connection_try_register_fallback(ctx->conn, WEECHAT_DBUS_OBJECT_CORE, &gettable, ctx, &err))
+    if (!dbus_connection_try_register_fallback (ctx->conn, WEECHAT_DBUS_OBJECT_CORE, &gettable, ctx, &err))
         goto error;
-    if (dbus_error_is_set(&err)) {
+    if (dbus_error_is_set (&err)) {
         goto error;
     }
 
@@ -205,7 +205,7 @@ error:
                         _("%s%s: Error registering %s: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
                         WEECHAT_DBUS_OBJECT_CORE, err.message);
-        dbus_error_free(&err);
+        dbus_error_free (&err);
 }
 
 /*
@@ -223,10 +223,10 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
 
     weechat_hook_signal ("debug_dump", &dbus_debug_dump_cb, NULL);
 
-    struct DBusError err;
-    dbus_error_init(&err);
+    DBusError err;
+    dbus_error_init (&err);
 
-    ctx = calloc(1, sizeof(struct t_dbus_ctx));
+    ctx = calloc (1, sizeof (struct t_dbus_ctx));
     if (!ctx)
     {
         weechat_printf (NULL,
@@ -235,8 +235,7 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         return WEECHAT_RC_ERROR;
     }
 
-    const char *busaddr = weechat_dbus_get_session_bus_address();
-
+    const char *busaddr = weechat_dbus_get_session_bus_address ();
     if (!busaddr) {
         weechat_printf (NULL,
                         _("%s%s: Error discovering DBus session address."),
@@ -244,68 +243,31 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
-    ctx->conn = dbus_connection_open(busaddr, &err);
-    if (dbus_error_is_set(&err)) {
+    ctx->conn = dbus_connection_open (busaddr, &err);
+    if (dbus_error_is_set (&err)) {
         weechat_printf (NULL,
                         _("%s%s: Error connecting to session DBus: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
                         err.message);
-        dbus_error_free(&err);
+        dbus_error_free (&err);
         goto error;
     }
 
-    ctx->hook_table = weechat_hashtable_new(8, WEECHAT_HASHTABLE_INTEGER,
-                                            WEECHAT_HASHTABLE_POINTER,
-                                            NULL, NULL);
-    if (!ctx->hook_table) {
-        weechat_printf (NULL,
-                        _("%s%s: not enough memory"),
-                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+    if (0 > weechat_dbus_hook_mainloop (ctx))
         goto error;
-    }
-
-    /* Set asynchronous handler functions */
-    dbus_connection_set_dispatch_status_function (ctx->conn,
-                                                  &weechat_dbus_set_dispatch,
-                                                  ctx, NULL);
-
-    if (!dbus_connection_set_watch_functions (ctx->conn,
-                                              &weechat_dbus_add_watch,
-                                              &weechat_dbus_remove_watch,
-                                              &weechat_dbus_watch_toggled,
-                                              ctx, NULL))
-    {
-        weechat_printf (NULL,
-                        _("%s%s: not enough memory"),
-                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
-        goto error;
-    }
-    
-    if (!dbus_connection_set_timeout_functions(ctx->conn,
-                                               &weechat_dbus_add_timeout,
-                                               &weechat_dbus_remove_timeout,
-                                               &weechat_dbus_timeout_toggled,
-                                               ctx,
-                                               NULL))
-    {
-        weechat_printf (NULL,
-                        _("%s%s: not enough memory"),
-                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
-        goto error;
-    }
 
     /* Register on the session bus. Technically this is blocking... */
-    dbus_bus_register(ctx->conn, &err);
-    if (dbus_error_is_set(&err)) {
+    dbus_bus_register (ctx->conn, &err);
+    if (dbus_error_is_set (&err)) {
         weechat_printf (NULL,
                         _("%s%s: Error registering to session DBus: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
                         err.message);
-        dbus_error_free(&err);
+        dbus_error_free (&err);
         goto error;
     }
 
-    if (0 < weechat_dbus_hook_signals(ctx))
+    if (0 < weechat_dbus_hook_signals (ctx))
     {
         weechat_printf (NULL,
                         _("%s%s: Error hooking signals"),
@@ -313,33 +275,28 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
-    dbus_bus_request_name(ctx->conn, WEECHAT_DBUS_NAME,
+    dbus_bus_request_name (ctx->conn, WEECHAT_DBUS_NAME,
                           DBUS_NAME_FLAG_ALLOW_REPLACEMENT | DBUS_NAME_FLAG_DO_NOT_QUEUE,
                           &err);
-    if (dbus_error_is_set(&err)) {
+    if (dbus_error_is_set (&err)) {
         weechat_printf (NULL,
                         _("%s%s: Error registering as '%s' on DBus: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
                         WEECHAT_DBUS_NAME, err.message);
-        dbus_error_free(&err);
+        dbus_error_free (&err);
         goto error;
     }
 
-
-    register_objects();
+    register_objects ();
 
     return WEECHAT_RC_OK;
 error:
     if (ctx->conn)
     {
-        dbus_connection_unref(ctx->conn);
+        dbus_connection_unref (ctx->conn);
         ctx->conn = NULL;
     }
-    if (ctx->hook_table)
-    {
-        weechat_hashtable_free(ctx->hook_table);
-    }
-    free(ctx);
+    free (ctx);
     return WEECHAT_RC_ERROR;
 }
 
@@ -352,14 +309,13 @@ weechat_plugin_end (struct t_weechat_plugin *plugin)
 {
     /* make C compiler happy */
     (void) plugin;
+
+    if (ctx->main) weechat_dbus_unhook_mainloop (ctx);
+    dbus_bus_release_name (ctx->conn, WEECHAT_DBUS_NAME, NULL);
+    if (ctx->sigctx) weechat_dbus_unhook_signals (ctx);
+    if (ctx->conn) dbus_connection_unref (ctx->conn);
+    free (ctx);
+
     weechat_dbus_plugin = NULL;
-
-    dbus_bus_release_name(ctx->conn, WEECHAT_DBUS_NAME, NULL);
-
-    if (ctx->sigctx) weechat_dbus_unhook_signals(ctx);
-    if (ctx->conn) dbus_connection_unref(ctx->conn);
-    if (ctx->hook_table) weechat_hashtable_free(ctx->hook_table);
-    free(ctx);
-
     return WEECHAT_RC_OK;
 }

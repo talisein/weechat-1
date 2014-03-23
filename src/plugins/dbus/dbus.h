@@ -23,14 +23,16 @@
 #define weechat_plugin weechat_dbus_plugin
 #define DBUS_PLUGIN_NAME "dbus"
 
+#include <dbus/dbus.h>
+
+struct t_dbus_mainloop_ctx;
 struct t_dbus_signal_ctx;
 
 struct t_dbus_ctx
 {
-    struct DBusConnection *conn;      /* Connection to Session Bus          */
-    struct t_hook *dispatch;          /* Timeout hook for dbus dispatch     */
+    DBusConnection *conn;             /* Connection to Session Bus          */
+    struct t_dbus_mainloop_ctx *main; /* Context for main loop hooks        */
     struct t_dbus_signal_ctx *sigctx; /* Context for hooked signals         */
-    struct t_hashtable *hook_table;   /* Hashtable key'd on fd              */
 };
 
 extern struct t_weechat_plugin *weechat_dbus_plugin;
