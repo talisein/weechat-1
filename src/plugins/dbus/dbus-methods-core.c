@@ -26,16 +26,56 @@
 #include "dbus.h"
 
 static DBusHandlerResult
+message_handler_core_get_buffers(DBusConnection *connection, DBusMessage *message, void *user_data)
+{
+    (void) user_data;
+
+    DBusError err;
+    dbus_error_init (&err);
+
+    struct t_hdata *ptr_hdata;
+    struct t_gui_buffer *ptr_buffer;
+    
+    DBusMessage *reply = dbus_message_new_method_return (message);
+    if (!reply) return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    
+    ptr_hdata = weechat_hdata_get("buffer");
+    int full_name_offset = weechat_hdata_get_var_offset(ptr_hdata, "full_name");
+
+    DBusMessageIter iter_top;
+    DBusMessageIter iter_array;
+    dbus_message_iter_init_append (reply, &iter_top);
+    dbus_message_iter_open_container (&iter_top, DBUS_TYPE_ARRAY,
+                                      DBUS_TYPE_STRING_AS_STRING,
+                                      &iter_array);
+
+    ptr_buffer = weechat_hdata_get_list (ptr_hdata, "gui_buffers");
+    while (ptr_buffer)
+    {
+        const char *name;
+        name = *(const char**)weechat_hdata_get_var_at_offset (ptr_hdata, ptr_buffer, full_name_offset);
+        if (name == NULL)
+            name = "";
+        dbus_message_iter_append_basic(&iter_array, DBUS_TYPE_STRING, &name);
+        ptr_buffer = weechat_hdata_move (ptr_hdata, ptr_buffer, 1);
+    }
+    dbus_message_iter_close_container(&iter_top, &iter_array);
+    dbus_connection_send (connection, reply, NULL);
+    dbus_message_unref (reply);
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult
 message_handler_core_command(DBusConnection *connection, DBusMessage *message, void *user_data)
 {
     (void) user_data;
 
     DBusError err;
     dbus_error_init (&err);
-    const char *plugin = NULL, *name = NULL, *command;
+    const char *name = NULL, *command;
 
     dbus_message_get_args (message, &err,
-                           DBUS_TYPE_STRING, &plugin,
                            DBUS_TYPE_STRING, &name,
                            DBUS_TYPE_STRING, &command,
                            DBUS_TYPE_INVALID);
@@ -43,8 +83,8 @@ message_handler_core_command(DBusConnection *connection, DBusMessage *message, v
     {
         DBusMessage *reply;
         reply = dbus_message_new_error_printf (message, DBUS_ERROR_INVALID_ARGS,
-                                               "Method %s requires signature sss. "
-                                               "The 1st and 2nd string can be \"\""
+                                               "Method %s requires signature ss. "
+                                               "The 1st can be \"\""
                                                "to specify the core buffer.",
                                                WEECHAT_DBUS_MEMBER_CORE_COMMAND);
         dbus_error_free (&err);
@@ -56,13 +96,13 @@ message_handler_core_command(DBusConnection *connection, DBusMessage *message, v
     else
     {
         struct t_gui_buffer *buf = NULL;
-        if (strlen (plugin) == 0 && strlen (name) == 0)
+        if (name && name[0])
         {
-            buf = weechat_buffer_search_main ();
+            buf = weechat_buffer_search("==", name);
         }
         else
         {
-            buf = weechat_buffer_search(plugin, name);
+            buf = weechat_buffer_search_main ();
         }
         if (buf == NULL)
         {
@@ -167,6 +207,10 @@ message_handler_core(DBusConnection *connection, DBusMessage *message, void *use
     if (dbus_message_has_member (message, WEECHAT_DBUS_MEMBER_CORE_COMMAND))
     {
         return message_handler_core_command(connection, message, user_data);
+    }
+    if (dbus_message_has_member (message, WEECHAT_DBUS_MEMBER_CORE_GET_BUFFERS))
+    {
+        return message_handler_core_get_buffers(connection, message, user_data);
     }
 
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

@@ -74,5 +74,6 @@ extern const char WEECHAT_DBUS_OBJECT_CORE[];
 extern const char WEECHAT_DBUS_IFACE_CORE[];
 extern const char WEECHAT_DBUS_MEMBER_CORE_INFOGET[];
 extern const char WEECHAT_DBUS_MEMBER_CORE_COMMAND[];
+extern const char WEECHAT_DBUS_MEMBER_CORE_GET_BUFFERS[];
 
 #endif /* WEECHAT_STRINGS_H */

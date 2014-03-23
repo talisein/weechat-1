@@ -73,5 +73,6 @@ const char WEECHAT_DBUS_OBJECT_CORE[]                           = "/org/weechat/
 const char WEECHAT_DBUS_IFACE_CORE[]                            = "org.weechat.core";
 const char WEECHAT_DBUS_MEMBER_CORE_INFOGET[]                   = "infoGet";
 const char WEECHAT_DBUS_MEMBER_CORE_COMMAND[]                   = "command";
+const char WEECHAT_DBUS_MEMBER_CORE_GET_BUFFERS[]               = "getBuffers";
 
 
