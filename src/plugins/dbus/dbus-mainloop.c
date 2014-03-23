@@ -45,6 +45,8 @@ struct t_dbus_watch
     DBusWatch *read;
     DBusWatch *write;
     struct t_hook *hook;
+    struct t_hashtable *ht;
+    int refcnt;
     int fd;
     bool hooked_read;
     bool hooked_write;
@@ -56,6 +58,26 @@ weechat_dbus_unhook (void *memory)
     struct t_hook *hook = (struct t_hook*)memory;
     if (hook)
         weechat_unhook (hook);
+}
+
+static void
+weechat_dbus_watch_free(void *memory)
+{
+    struct t_dbus_watch *w = (struct t_dbus_watch*)memory;
+
+    --(w->refcnt);
+    if (w->refcnt == 0)
+    {
+        if (w->read || w->write || w->hook)
+        {
+            weechat_printf (NULL,
+                            _("%s%s: Refcnt 0 but there are still watches"),
+                            weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        } else {
+            weechat_hashtable_remove (w->ht, &w->fd);
+            free (w);
+        }
+    }
 }
 
 static int
@@ -347,10 +369,13 @@ weechat_dbus_add_watch(DBusWatch *watch, void *data)
         w->fd = fd;
         w->hooked_read = false;
         w->hooked_write = false;
+        w->refcnt = 0;
+        w->ht = ctx->hook_table;
         weechat_hashtable_set (ctx->hook_table, &fd, w);
     }
 
-    dbus_watch_set_data (watch, w, NULL);
+    ++(w->refcnt);
+    dbus_watch_set_data (watch, w, weechat_dbus_watch_free);
 
     if (dbus_watch_get_enabled (watch))
         weechat_dbus_watch_toggled (watch, data);
@@ -361,7 +386,7 @@ weechat_dbus_add_watch(DBusWatch *watch, void *data)
 void
 weechat_dbus_remove_watch(DBusWatch *watch, void *data)
 {
-    struct t_dbus_mainloop_ctx *ctx = (struct t_dbus_mainloop_ctx*)data;
+    (void) data;
     struct t_dbus_watch *w = (struct t_dbus_watch*)dbus_watch_get_data (watch);
     
     if (w->read == watch)
@@ -373,6 +398,10 @@ weechat_dbus_remove_watch(DBusWatch *watch, void *data)
             if (w->hooked_write)
             {
                 w->hook = weechat_hook_fd (w->fd, 0, 1, 1, &weechat_dbus_watch_cb, w);
+            }
+            else
+            {
+                w->hook = NULL;
             }
         }
         w->read = NULL;
@@ -387,17 +416,15 @@ weechat_dbus_remove_watch(DBusWatch *watch, void *data)
             {
                 w->hook = weechat_hook_fd (w->fd, 1, 0, 1, &weechat_dbus_watch_cb, w);
             }
+            else
+            {
+                w->hook = NULL;
+            }
         }
         w->write = NULL;
     }
 
     dbus_watch_set_data (watch, NULL, NULL);
-
-    if (!w->read && !w->write && !w->hook)
-    {
-        weechat_hashtable_remove (ctx->hook_table, &w->fd);
-        free (w);
-    }
 }
 
 static int
