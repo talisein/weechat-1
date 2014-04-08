@@ -35,6 +35,8 @@ weechat_dbus_signal_cb_irc_inout(void *, const char *, const char *, void *);
 static int
 weechat_dbus_signal_cb_commalist(void *, const char *, const char *, void *);
 static int
+weechat_dbus_signal_cb_commasplit(void *, const char *, const char *, void *);
+static int
 weechat_dbus_signal_cb_infolist(void *, const char *, const char *, void *);
 
 struct t_sigmap
@@ -144,35 +146,35 @@ struct t_sigmap sigmap[] =
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
         WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_JOIN,
-        &weechat_dbus_signal_cb_commalist
+        &weechat_dbus_signal_cb_commasplit
     },
     {
         "irc_notify_quit",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
         WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_QUIT,
-        &weechat_dbus_signal_cb_commalist
+        &weechat_dbus_signal_cb_commasplit
     },
     {
         "irc_notify_away",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
         WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_AWAY,
-        &weechat_dbus_signal_cb_commalist
+        &weechat_dbus_signal_cb_commasplit
     },
     {
         "irc_notify_still_away",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
         WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_STILL_AWAY,
-        &weechat_dbus_signal_cb_commalist
+        &weechat_dbus_signal_cb_commasplit
     },
     {
         "irc_notify_back",
         WEECHAT_DBUS_OBJECT_SIGNAL,
         WEECHAT_DBUS_IFACE_SIGNAL_IRC,
         WEECHAT_DBUS_MEMBER_SIGNAL_IRC_NOTIFY_BACK,
-        &weechat_dbus_signal_cb_commalist
+        &weechat_dbus_signal_cb_commasplit
     },
     {
         "day_changed",
@@ -376,6 +378,7 @@ error:
     return WEECHAT_RC_OK;
 }
 
+/* Constructs a "as" array of strings reply */
 static int
 weechat_dbus_signal_cb_commalist (void *data,
                                   const char *signal,
@@ -395,8 +398,52 @@ weechat_dbus_signal_cb_commalist (void *data,
         char **strs = weechat_string_split ((char*)signal_data, ",", 0, 0, &num_items);
         if (!dbus_message_append_args (msg, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &strs, num_items, DBUS_TYPE_INVALID))
         {
+            weechat_string_free_split(strs);
+            dbus_message_unref(msg);
+            goto error;
+        }
+
+        dbus_connection_send(ctx->conn, msg, NULL);
+        dbus_message_unref(msg);
+        weechat_string_free_split(strs);
+    }
+
+    return WEECHAT_RC_OK;
+
+error:
+    weechat_printf (NULL,
+                    _("%s%s: out of memory"),
+                    weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+    return WEECHAT_RC_ERROR;
+}
+
+/* Constructs a "ss" or "sss" or "ssss..." etc reply */
+static int
+weechat_dbus_signal_cb_commasplit (void *data,
+                                  const char *signal,
+                                  const char *type_data,
+                                  void *signal_data)
+{
+    (void) type_data;
+    struct t_dbus_ctx *ctx = (struct t_dbus_ctx*)data;
+    struct t_sigmap *sigptr = (struct t_sigmap*)weechat_hashtable_get(ctx->sigctx->ht, signal);
+    if (sigptr)
+    {
+        DBusMessage *msg = dbus_message_new_signal(sigptr->path, sigptr->iface, sigptr->name);
+        if (!msg)
+            goto error;
+
+        int num_items;
+        char **strs = weechat_string_split ((char*)signal_data, ",", 0, 0, &num_items);
+        int i;
+        for (i = 0; i < num_items; ++i)
+        {
+            if (!dbus_message_append_args (msg, DBUS_TYPE_STRING, &(strs[i]), DBUS_TYPE_INVALID))
+            {
+                weechat_string_free_split(strs);
                 dbus_message_unref(msg);
                 goto error;
+            }
         }
 
         dbus_connection_send(ctx->conn, msg, NULL);
