@@ -24,6 +24,12 @@
 #include "dbus.h"
 #include "dbus-argument.h"
 
+struct t_dbus_argument_list
+{
+    struct t_dbus_argument *head;
+    struct t_dbus_argument *tail;
+};
+
 struct t_dbus_argument
 {
     struct t_dbus_argument *next;
@@ -32,53 +38,56 @@ struct t_dbus_argument
     enum t_dbus_argument_direction direction;
 };
 
-struct t_dbus_argument*
-weechat_dbus_argument_list_get_tail(const struct t_dbus_argument *first)
+
+struct t_dbus_argument_list *
+weechat_dbus_argument_list_new (void)
 {
-    if (!first)
-    {
-        return NULL;
-    }
-
-    const struct t_dbus_argument *this = first;
-    while (NULL != this->next)
-    {
-        this = this->next;
-    }
-
-    return (struct t_dbus_argument*)this;
+    return calloc(1, sizeof(struct t_dbus_argument_list));
 }
 
 int
-weechat_dbus_argument_list_insert(struct t_dbus_argument *prev,
-                                  struct t_dbus_argument *to_be_inserted)
+weechat_dbus_argument_list_append (struct t_dbus_argument_list *list,
+                                   struct t_dbus_argument *arg)
 {
-    if (!prev || !to_be_inserted)
+    if (!list || !arg)
     {
         return WEECHAT_RC_ERROR;
     }
 
-    if (NULL != to_be_inserted->next)
+    if (NULL != arg->next)
     {
         return WEECHAT_RC_ERROR;
     }
 
-    to_be_inserted->next = prev->next;
-    prev->next = to_be_inserted;
+    if (list->head)
+    {
+        list->tail->next = arg;
+        list->tail = arg;
+    }
+    else
+    {
+        list->head = arg;
+        list->tail = arg;
+    }
 
     return WEECHAT_RC_OK;
 }
 
-void
-weechat_dbus_argument_list_free_all(struct t_dbus_argument *first)
+static void
+weechat_dbus_argument_list_free_all(struct t_dbus_argument_list *list)
 {
-    if (!first)
+    if (!list)
     {
         return;
     }
 
-    struct t_dbus_argument *this = first;
-    struct t_dbus_argument *next = first->next;
+    if (!list->head)
+    {
+        return;
+    }
+
+    struct t_dbus_argument *this = list->head;
+    struct t_dbus_argument *next = this->next;
     while (NULL != next)
     {
         weechat_dbus_argument_free (this);
@@ -87,6 +96,18 @@ weechat_dbus_argument_list_free_all(struct t_dbus_argument *first)
     }
 
     weechat_dbus_argument_free (this);
+}
+
+void
+weechat_dbus_argument_list_free(struct t_dbus_argument_list *list)
+{
+    if (!list)
+    {
+        return;
+    }
+
+    weechat_dbus_argument_list_free_all (list);
+    free (list);
 }
 
 struct t_dbus_argument*

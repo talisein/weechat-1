@@ -27,7 +27,7 @@
 
 struct t_dbus_method
 {
-    struct t_dbus_argument *argument_head;
+    struct t_dbus_argument_list *list;
     char *name;
     bool is_deprecated;
     bool is_no_reply;
@@ -71,6 +71,14 @@ weechat_dbus_method_new (const char *name,
         return NULL;
     }
 
+    m->list = weechat_dbus_argument_list_new();
+    if (!m->list)
+    {
+        free (m->name);
+        free (m);
+        return NULL;
+    }
+
     m->is_deprecated = is_deprecated;
     m->is_no_reply = is_no_reply;
 
@@ -95,15 +103,7 @@ weechat_dbus_method_add_arg (struct t_dbus_method *method,
         return WEECHAT_RC_ERROR;
     }
 
-    if (!method->argument_head)
-    {
-        method->argument_head = arg;
-        return WEECHAT_RC_OK;
-    }
-
-    struct t_dbus_argument *tail;
-    tail = weechat_dbus_argument_list_get_tail (method->argument_head);
-    return weechat_dbus_argument_list_insert (tail, arg);
+    return weechat_dbus_argument_list_append(method->list, arg);
 }
 
 const char *
@@ -125,11 +125,8 @@ weechat_dbus_method_free (struct t_dbus_method *method)
         return;
     }
 
-    if (method->argument_head)
-    {
-        weechat_dbus_argument_list_free_all (method->argument_head);
-    }
-
+    weechat_dbus_argument_list_free (method->list);
     free (method->name);
+    free (method);
 }
 

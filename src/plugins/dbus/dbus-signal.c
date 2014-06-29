@@ -27,7 +27,7 @@
 
 struct t_dbus_signal
 {
-    struct t_dbus_argument *argument_head;
+    struct t_dbus_argument_list *list;
     char *name;
     bool is_deprecated;
 };
@@ -69,8 +69,15 @@ weechat_dbus_signal_new (const char *name,
         return NULL;
     }
 
+    s->list = weechat_dbus_argument_list_new ();
+    if (!s->list)
+    {
+        free (s->name);
+        free (s);
+        return NULL;
+    }
+
     s->is_deprecated = is_deprecated;
-    s->argument_head = NULL;
 
     return s;
 }
@@ -91,15 +98,9 @@ weechat_dbus_signal_add_arg(struct t_dbus_signal *signal, const char *name,
         return WEECHAT_RC_ERROR;
     }
 
-    if (!signal->argument_head)
-    {
-        signal->argument_head = arg;
-        return WEECHAT_RC_OK;
-    }
+    return weechat_dbus_argument_list_append(signal->list, arg);
 
-    struct t_dbus_argument *tail;
-    tail = weechat_dbus_argument_list_get_tail(signal->argument_head);
-    return weechat_dbus_argument_list_insert(tail, arg);
+    return WEECHAT_RC_OK;
 }
 
 const char *
@@ -121,10 +122,7 @@ weechat_dbus_signal_free(struct t_dbus_signal *signal)
         return;
     }
 
-    if (signal->argument_head)
-    {
-        weechat_dbus_argument_list_free_all (signal->argument_head);
-    }
-
+    weechat_dbus_argument_list_free (signal->list);
     free (signal->name);
+    free (signal);
 }

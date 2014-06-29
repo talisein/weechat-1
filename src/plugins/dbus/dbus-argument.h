@@ -29,20 +29,22 @@ enum t_dbus_argument_direction
 };
 
 struct t_dbus_argument*
-weechat_dbus_argument_list_get_tail (const struct t_dbus_argument *first);
-
-int
-weechat_dbus_argument_list_insert (struct t_dbus_argument *prev,
-                                   struct t_dbus_argument *to_be_inserted);
-
-void
-weechat_dbus_argument_list_free_all (struct t_dbus_argument *first);
-
-struct t_dbus_argument*
 weechat_dbus_argument_new (const char *name, const char *type_signature,
                            enum t_dbus_argument_direction direction);
 
 void
 weechat_dbus_argument_free (struct t_dbus_argument *argument);
+
+struct t_dbus_argument_list;
+
+struct t_dbus_argument_list *
+weechat_dbus_argument_list_new (void);
+
+int
+weechat_dbus_argument_list_append (struct t_dbus_argument_list *list,
+                                   struct t_dbus_argument *arg);
+
+void
+weechat_dbus_argument_list_free (struct t_dbus_argument_list *list);
 
 #endif /* WEECHAT_DBUS_ARGUMENT_H */
