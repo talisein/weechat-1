@@ -17,31 +17,26 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WEECHAT_DBUS_H
-#define WEECHAT_DBUS_H 1
+#ifndef WEECHAT_DBUS_OBJECT_H
+#define WEECHAT_DBUS_OBJECT_H 1
 
-#define weechat_plugin weechat_dbus_plugin
-#define DBUS_PLUGIN_NAME "dbus"
+#include "dbus-interface.h"
 
-#include <dbus/dbus.h>
+struct t_dbus_object;
 
-struct t_dbus_mainloop_ctx;
-struct t_dbus_signal_ctx;
-
-struct t_dbus_ctx
-{
-    DBusConnection *conn;             /* Connection to Session Bus          */
-    struct t_dbus_mainloop_ctx *main; /* Context for main loop hooks        */
-    struct t_dbus_signal_ctx *sigctx; /* Context for hooked signals         */
-};
-
-extern struct t_weechat_plugin *weechat_dbus_plugin;
+struct t_dbus_object *
+weechat_dbus_object_new (struct t_dbus_object *parent, const char *name, const void *obj);
 
 int
-weechat_dbus_hook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_object_add_interface (struct t_dbus_object *o, const struct t_dbus_interface *i);
+
+int
+weechat_dbus_object_add_child (struct t_dbus_object *parent, const struct t_dbus_object *child);
 
 void
-weechat_dbus_unhook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_object_unref (struct t_dbus_object *obj);
 
+void
+weechat_dbus_object_ref (const struct t_dbus_object *obj);
 
-#endif /* WEECHAT_DBUS_H */
+#endif /* WEECHAT_DBUS_OBJECT_H */

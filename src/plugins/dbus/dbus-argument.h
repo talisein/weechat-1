@@ -17,31 +17,32 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WEECHAT_DBUS_H
-#define WEECHAT_DBUS_H 1
+#ifndef WEECHAT_DBUS_ARGUMENT_H
+#define WEECHAT_DBUS_ARGUMENT_H 1
 
-#define weechat_plugin weechat_dbus_plugin
-#define DBUS_PLUGIN_NAME "dbus"
+struct t_dbus_argument;
 
-#include <dbus/dbus.h>
-
-struct t_dbus_mainloop_ctx;
-struct t_dbus_signal_ctx;
-
-struct t_dbus_ctx
+enum t_dbus_argument_direction
 {
-    DBusConnection *conn;             /* Connection to Session Bus          */
-    struct t_dbus_mainloop_ctx *main; /* Context for main loop hooks        */
-    struct t_dbus_signal_ctx *sigctx; /* Context for hooked signals         */
+    WEECHAT_DBUS_ARGUMENT_DIRECTION_IN,
+    WEECHAT_DBUS_ARGUMENT_DIRECTION_OUT
 };
 
-extern struct t_weechat_plugin *weechat_dbus_plugin;
+struct t_dbus_argument*
+weechat_dbus_argument_list_get_tail (const struct t_dbus_argument *first);
 
 int
-weechat_dbus_hook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_argument_list_insert (struct t_dbus_argument *prev,
+                                   struct t_dbus_argument *to_be_inserted);
 
 void
-weechat_dbus_unhook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_argument_list_free_all (struct t_dbus_argument *first);
 
+struct t_dbus_argument*
+weechat_dbus_argument_new (const char *name, const char *type_signature,
+                           enum t_dbus_argument_direction direction);
 
-#endif /* WEECHAT_DBUS_H */
+void
+weechat_dbus_argument_free (struct t_dbus_argument *argument);
+
+#endif /* WEECHAT_DBUS_ARGUMENT_H */

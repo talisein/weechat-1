@@ -20,14 +20,23 @@
 #ifndef WEECHAT_DBUS_SIGNAL_H
 #define WEECHAT_DBUS_SIGNAL_H 1
 
+#include <stdbool.h>
 
-struct t_dbus_signal_ctx;
-struct t_dbus_ctx;
+struct t_dbus_signal;
+
+struct t_dbus_signal *
+weechat_dbus_signal_new(const char *name,
+                        bool is_deprecated);
 
 int
-weechat_dbus_hook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_signal_add_arg(struct t_dbus_signal *signal,
+                            const char *name,
+                            const char *type_signature);
+
+const char *
+weechat_dbus_signal_get_name(const struct t_dbus_signal *signal);
 
 void
-weechat_dbus_unhook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_signal_free (struct t_dbus_signal *signal);
 
 #endif /* WEECHAT_DBUS_SIGNAL_H */

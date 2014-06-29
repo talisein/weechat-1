@@ -17,31 +17,29 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WEECHAT_DBUS_H
-#define WEECHAT_DBUS_H 1
+#ifndef WEECHAT_DBUS_METHOD_H
+#define WEECHAT_DBUS_METHOD_H 1
 
-#define weechat_plugin weechat_dbus_plugin
-#define DBUS_PLUGIN_NAME "dbus"
+#include <stdbool.h>
+#include "dbus-argument.h"
 
-#include <dbus/dbus.h>
+struct t_dbus_method;
 
-struct t_dbus_mainloop_ctx;
-struct t_dbus_signal_ctx;
-
-struct t_dbus_ctx
-{
-    DBusConnection *conn;             /* Connection to Session Bus          */
-    struct t_dbus_mainloop_ctx *main; /* Context for main loop hooks        */
-    struct t_dbus_signal_ctx *sigctx; /* Context for hooked signals         */
-};
-
-extern struct t_weechat_plugin *weechat_dbus_plugin;
+struct t_dbus_method *
+weechat_dbus_method_new(const char *name,
+                        bool is_deprecated,
+                        bool is_no_reply);
 
 int
-weechat_dbus_hook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_method_add_arg(struct t_dbus_method *method,
+                            const char *name,
+                            const char *type_signature,
+                            enum t_dbus_argument_direction);
+
+const char *
+weechat_dbus_method_get_name(const struct t_dbus_method *method);
 
 void
-weechat_dbus_unhook_signals(struct t_dbus_ctx *ctx);
+weechat_dbus_method_free(struct t_dbus_method *method);
 
-
-#endif /* WEECHAT_DBUS_H */
+#endif /* WEECHAT_DBUS_METHOD_H */

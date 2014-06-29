@@ -22,7 +22,12 @@ dbus.c dbus.h
 dbus-mainloop.c dbus-mainloop.h
 dbus-infolist.c dbus-infolist.h
 dbus-strings.c dbus-strings.h
+dbus-argument.c dbus-argument.h
+dbus-property.c dbus-property.h
 dbus-signal.c dbus-signal.h
+dbus-method.c dbus-method.h
+dbus-interface.c dbus-interface.h
+dbus-object.c dbus-object.h
 dbus-methods-core.c dbus-methods-core.h
 )
 

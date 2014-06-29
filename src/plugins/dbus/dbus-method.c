@@ -17,24 +17,26 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <dbus/dbus.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dbus/dbus.h>
 #include "../weechat-plugin.h"
 #include "dbus.h"
-#include "dbus-signal.h"
+#include "dbus-method.h"
 #include "dbus-argument.h"
 
-struct t_dbus_signal
+struct t_dbus_method
 {
     struct t_dbus_argument *argument_head;
     char *name;
     bool is_deprecated;
+    bool is_no_reply;
 };
 
-struct t_dbus_signal *
-weechat_dbus_signal_new (const char *name,
-                         bool is_deprecated)
+struct t_dbus_method *
+weechat_dbus_method_new (const char *name,
+                         bool is_deprecated,
+                         bool is_no_reply)
 {
     if (!name)
     {
@@ -48,7 +50,7 @@ weechat_dbus_signal_new (const char *name,
         if (dbus_error_is_set (&err))
         {
             weechat_printf (NULL,
-                            _("%s%s: Can't create signal %s: %s"),
+                            _("%s%s: Can't create method %s: %s"),
                             weechat_prefix ("error"), DBUS_PLUGIN_NAME,
                             name, err.message);
             dbus_error_free (&err);  
@@ -56,75 +58,78 @@ weechat_dbus_signal_new (const char *name,
         return NULL;
     }
 
-    struct t_dbus_signal *s = malloc (sizeof (struct t_dbus_signal));
-    if (!s)
+    struct t_dbus_method *m = malloc (sizeof (struct t_dbus_method));
+    if (!m)
     {
         return NULL;
     }
 
-    s->name = strdup(name);
-    if (!s->name)
+    m->name = strdup (name);
+    if (!m->name)
     {
-        free (s);
+        free (m);
         return NULL;
     }
 
-    s->is_deprecated = is_deprecated;
-    s->argument_head = NULL;
+    m->is_deprecated = is_deprecated;
+    m->is_no_reply = is_no_reply;
 
-    return s;
+    return m;
 }
 
 int
-weechat_dbus_signal_add_arg(struct t_dbus_signal *signal, const char *name,
-                            const char *type_signature)
+weechat_dbus_method_add_arg (struct t_dbus_method *method,
+                             const char *name,
+                             const char *type_signature,
+                             enum t_dbus_argument_direction direction)
 {
-    if (!signal || !name || !type_signature)
+    if (!method || !name || !type_signature)
     {
         return WEECHAT_RC_ERROR;
     }
 
-    struct t_dbus_argument *arg = weechat_dbus_argument_new(name, type_signature,
-                                                            WEECHAT_DBUS_ARGUMENT_DIRECTION_OUT);
+    struct t_dbus_argument *arg = weechat_dbus_argument_new (name, type_signature,
+                                                             direction);
     if (!arg)
     {
         return WEECHAT_RC_ERROR;
     }
 
-    if (!signal->argument_head)
+    if (!method->argument_head)
     {
-        signal->argument_head = arg;
+        method->argument_head = arg;
         return WEECHAT_RC_OK;
     }
 
     struct t_dbus_argument *tail;
-    tail = weechat_dbus_argument_list_get_tail(signal->argument_head);
-    return weechat_dbus_argument_list_insert(tail, arg);
+    tail = weechat_dbus_argument_list_get_tail (method->argument_head);
+    return weechat_dbus_argument_list_insert (tail, arg);
 }
 
 const char *
-weechat_dbus_signal_get_name(const struct t_dbus_signal *signal)
+weechat_dbus_method_get_name (const struct t_dbus_method *method)
 {
-    if (!signal)
+    if (!method)
     {
         return NULL;
     }
 
-    return signal->name;
+    return method->name;
 }
 
 void
-weechat_dbus_signal_free(struct t_dbus_signal *signal)
+weechat_dbus_method_free (struct t_dbus_method *method)
 {
-    if (!signal)
+    if (!method)
     {
         return;
     }
 
-    if (signal->argument_head)
+    if (method->argument_head)
     {
-        weechat_dbus_argument_list_free_all (signal->argument_head);
+        weechat_dbus_argument_list_free_all (method->argument_head);
     }
 
-    free (signal->name);
+    free (method->name);
 }
+

@@ -23,15 +23,25 @@ libdir = ${weechat_libdir}/plugins
 
 lib_LTLIBRARIES = dbus.la
 
-dbus_la_SOURCES = dbus.c \
-                  dbus-mainloop.c \
-                  dbus-mainloop.h \
-                  dbus-strings.c  \
-                  dbus-strings.h  \
-                  dbus-signal.c   \
-                  dbus-signal.h   \
-                  dbus-infolist.c \
-                  dbus-infolist.h \
+dbus_la_SOURCES = dbus.c              \
+                  dbus-mainloop.c     \
+                  dbus-mainloop.h     \
+                  dbus-argument.c     \
+                  dbus-argument.h     \
+                  dbus-property.c     \
+                  dbus-property.h     \
+                  dbus-signal.c       \
+                  dbus-signal.h       \
+                  dbus-method.c       \
+                  dbus-method.h       \
+                  dbus-interface.c    \
+                  dbus-interface.h    \
+                  dbus-object.c       \
+                  dbus-object.h       \
+                  dbus-strings.c      \
+                  dbus-strings.h      \
+                  dbus-infolist.c     \
+                  dbus-infolist.h     \
                   dbus-methods-core.c \
                   dbus-methods-core.h \
                   dbus.h
