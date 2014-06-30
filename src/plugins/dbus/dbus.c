@@ -109,7 +109,7 @@ dbus_debug_dump_cb (void *data, const char *signal, const char *type_data,
     return WEECHAT_RC_OK;
 }
 
-const char*
+static const char*
 weechat_dbus_get_session_bus_address(void)
 {
     const char *var = getenv ("DBUS_SESSION_BUS_ADDRESS");

@@ -27,12 +27,14 @@
 
 struct t_dbus_mainloop_ctx;
 struct t_dbus_signal_ctx;
+struct t_dbus_object_factory;
 
 struct t_dbus_ctx
 {
     DBusConnection *conn;             /* Connection to Session Bus          */
     struct t_dbus_mainloop_ctx *main; /* Context for main loop hooks        */
     struct t_dbus_signal_ctx *sigctx; /* Context for hooked signals         */
+    struct t_dbus_object_factory *factory; /* Makes objects as they appear  */
 };
 
 extern struct t_weechat_plugin *weechat_dbus_plugin;

@@ -28,6 +28,7 @@ dbus-signal.c dbus-signal.h
 dbus-method.c dbus-method.h
 dbus-interface.c dbus-interface.h
 dbus-object.c dbus-object.h
+dbus-object-factory.c dbus-object-factory.h
 dbus-methods-core.c dbus-methods-core.h
 )
 

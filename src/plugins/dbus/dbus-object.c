@@ -29,35 +29,52 @@ struct t_dbus_object
     const struct t_dbus_object *parent;
     struct t_hashtable         *interface_ht;
     struct t_hashtable         *children_ht;
-    char                       *name;
+    char                       *path;
     const void                 *obj;
     size_t                      ref_cnt;
 };
 
 static void
-weechat_dbus_object_interfaces_free (struct t_hashtable *hashtable, const void *key, void *value)
+weechat_dbus_object_interfaces_free (struct t_hashtable *hashtable,
+                                     const void *key, void *value)
 {
     (void) hashtable;
     (void) key;
 
-    weechat_dbus_interface_unref ( (struct t_dbus_interface*)value);
+    weechat_dbus_interface_unref ((struct t_dbus_interface*)value);
 }
 
 static void
-weechat_dbus_object_objects_free (struct t_hashtable *hashtable, const void *key, void *value)
+weechat_dbus_object_objects_free (struct t_hashtable *hashtable,
+                                  const void *key, void *value)
 {
     (void) hashtable;
     (void) key;
 
-    weechat_dbus_object_unref ( (struct t_dbus_object*)value);
+    weechat_dbus_object_unref ((struct t_dbus_object*)value);
 }
 
 struct t_dbus_object *
 weechat_dbus_object_new (struct t_dbus_object *parent,
-                         const char *name,
+                         const char *path,
                          const void *obj)
 {
-    if (!name) return NULL;
+    if (!path) return NULL;
+
+    DBusError err;
+    dbus_error_init (&err);
+    if (!dbus_validate_path(path, &err))
+    {
+        if (dbus_error_is_set (&err))
+        {
+            weechat_printf (NULL,
+                            _("%s%s: Can't create object %s: %s"),
+                            weechat_prefix ("error"), DBUS_PLUGIN_NAME,
+                            path, err.message);
+            dbus_error_free (&err);  
+        }
+        return NULL;
+    }
 
     struct t_dbus_object *o = malloc (sizeof (struct t_dbus_object));
     if (!o) return NULL;
@@ -78,8 +95,8 @@ weechat_dbus_object_new (struct t_dbus_object *parent,
         return NULL;
     }
 
-    o->name = strdup (name);
-    if (!o->name)
+    o->path = strdup (path);
+    if (!o->path)
     {
         weechat_hashtable_free (o->children_ht);
         weechat_hashtable_free (o->interface_ht);
@@ -147,6 +164,17 @@ weechat_dbus_object_add_child (struct t_dbus_object *parent,
     return WEECHAT_RC_OK;
 }
 
+void *
+weechat_dbus_object_get_object (const struct t_dbus_object *obj)
+{
+    if (!obj)
+    {
+        return NULL;
+    }
+
+    return (void *)obj->obj;
+}
+
 void
 weechat_dbus_object_unref (struct t_dbus_object *o)
 {
@@ -161,7 +189,7 @@ weechat_dbus_object_unref (struct t_dbus_object *o)
     {
         weechat_hashtable_free (o->interface_ht);
         weechat_hashtable_free (o->children_ht);
-        free (o->name);
+        free (o->path);
     }
 }
 

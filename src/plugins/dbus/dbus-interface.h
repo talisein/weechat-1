@@ -20,6 +20,7 @@
 #ifndef WEECHAT_DBUS_INTERFACE_H
 #define WEECHAT_DBUS_INTERFACE_H 1
 
+#include <stdbool.h>
 #include "dbus-method.h"
 #include "dbus-signal.h"
 #include "dbus-property.h"
