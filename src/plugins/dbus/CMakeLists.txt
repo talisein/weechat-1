@@ -29,6 +29,10 @@ dbus-method.c dbus-method.h
 dbus-interface.c dbus-interface.h
 dbus-object.c dbus-object.h
 dbus-object-factory.c dbus-object-factory.h
+dbus-interfaces-peer.c dbus-interfaces-peer.h
+dbus-interfaces-introspectable.c dbus-interfaces-introspectable.h
+dbus-interfaces-properties.c dbus-interfaces-properties.h
+dbus-interfaces-object-manager.c dbus-interfaces-object-manager.h
 dbus-methods-core.c dbus-methods-core.h
 )
 

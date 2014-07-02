@@ -23,29 +23,37 @@ libdir = ${weechat_libdir}/plugins
 
 lib_LTLIBRARIES = dbus.la
 
-dbus_la_SOURCES = dbus.c                \
-                  dbus-mainloop.c       \
-                  dbus-mainloop.h       \
-                  dbus-argument.c       \
-                  dbus-argument.h       \
-                  dbus-property.c       \
-                  dbus-property.h       \
-                  dbus-signal.c         \
-                  dbus-signal.h         \
-                  dbus-method.c         \
-                  dbus-method.h         \
-                  dbus-interface.c      \
-                  dbus-interface.h      \
-                  dbus-object.c         \
-                  dbus-object.h         \
-                  dbus-object-factory.c \
-                  dbus-object-factory.h \
-                  dbus-strings.c        \
-                  dbus-strings.h        \
-                  dbus-infolist.c       \
-                  dbus-infolist.h       \
-                  dbus-methods-core.c   \
-                  dbus-methods-core.h   \
+dbus_la_SOURCES = dbus.c                           \
+                  dbus-mainloop.c                  \
+                  dbus-mainloop.h                  \
+                  dbus-argument.c                  \
+                  dbus-argument.h                  \
+                  dbus-property.c                  \
+                  dbus-property.h                  \
+                  dbus-signal.c                    \
+                  dbus-signal.h                    \
+                  dbus-method.c                    \
+                  dbus-method.h                    \
+                  dbus-interface.c                 \
+                  dbus-interface.h                 \
+                  dbus-object.c                    \
+                  dbus-object.h                    \
+                  dbus-object-factory.c            \
+                  dbus-object-factory.h            \
+                  dbus-interfaces-peer.c           \
+                  dbus-interfaces-peer.h           \
+                  dbus-interfaces-introspectable.c \
+                  dbus-interfaces-introspectable.h \
+                  dbus-interfaces-properties.c     \
+                  dbus-interfaces-properties.h     \
+                  dbus-interfaces-object-manager.c \
+                  dbus-interfaces-object-manager.h \
+                  dbus-strings.c                   \
+                  dbus-strings.h                   \
+                  dbus-infolist.c                  \
+                  dbus-infolist.h                  \
+                  dbus-methods-core.c              \
+                  dbus-methods-core.h              \
                   dbus.h
 
 dbus_la_LDFLAGS = -module -no-undefined
