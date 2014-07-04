@@ -17,19 +17,14 @@
  * along with WeeChat.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
-#include <dbus/dbus.h>
+#ifndef WEECHAT_DBUS_INTERFACES_BUFFER_H
+#define WEECHAT_DBUS_INTERFACES_BUFFER_H 1
 
-struct t_dbus_object_factory;
-struct t_gui_buffer;
+#define WEECHAT_DBUS_INTERFACES_BUFFER "org.weechat.Buffer"
 
-struct t_dbus_object_factory *
-weechat_dbus_object_factory_new (void);
+struct t_dbus_interface;
 
-void
-weechat_dbus_object_factory_free (struct t_dbus_object_factory *factory);
+struct t_dbus_interface*
+weechat_dbus_interfaces_buffer_new (void);
 
-int
-weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
-                                         struct t_gui_buffer *buffer,
-                                         DBusConnection *conn);
+#endif /* WEECHAT_DBUS_INTERFACES_BUFFER_H */

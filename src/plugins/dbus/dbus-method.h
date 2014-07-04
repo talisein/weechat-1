@@ -21,12 +21,20 @@
 #define WEECHAT_DBUS_METHOD_H 1
 
 #include <stdbool.h>
+#include <dbus/dbus.h>
+#include <libxml/xmlwriter.h>
 #include "dbus-argument.h"
 
 struct t_dbus_method;
+struct t_dbus_object;
+
+typedef DBusHandlerResult (*t_dbus_method_handler)(struct t_dbus_object *o,
+                                                   DBusConnection *conn,
+                                                   DBusMessage *msg);
 
 struct t_dbus_method *
 weechat_dbus_method_new(const char *name,
+                        t_dbus_method_handler handler,
                         bool is_deprecated,
                         bool is_no_reply);
 
@@ -41,5 +49,15 @@ weechat_dbus_method_get_name(const struct t_dbus_method *method);
 
 void
 weechat_dbus_method_free(struct t_dbus_method *method);
+
+DBusHandlerResult
+weechat_dbus_method_handle_msg (const struct t_dbus_method *method,
+                                struct t_dbus_object *o,
+                                DBusConnection *conn,
+                                DBusMessage *msg);
+
+int
+weechat_dbus_method_introspect (struct t_dbus_method *method,
+                                xmlTextWriterPtr writer);
 
 #endif /* WEECHAT_DBUS_METHOD_H */

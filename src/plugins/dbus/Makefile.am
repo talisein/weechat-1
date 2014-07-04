@@ -48,6 +48,8 @@ dbus_la_SOURCES = dbus.c                           \
                   dbus-interfaces-properties.h     \
                   dbus-interfaces-object-manager.c \
                   dbus-interfaces-object-manager.h \
+                  dbus-interfaces-buffer.c         \
+                  dbus-interfaces-buffer.h         \
                   dbus-strings.c                   \
                   dbus-strings.h                   \
                   dbus-infolist.c                  \

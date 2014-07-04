@@ -176,3 +176,69 @@ weechat_dbus_argument_free (struct t_dbus_argument *argument)
     free (argument->type_signature);
     free (argument);
 }
+
+int
+weechat_dbus_argument_list_introspect (struct t_dbus_argument_list *list,
+                                       xmlTextWriterPtr writer,
+                                       bool is_signal)
+{
+    int rc;
+    int res;
+    struct t_dbus_argument *arg;
+
+    for (arg = list->head; arg; arg = arg->next)
+    {
+        rc = xmlTextWriterStartElement (writer, BAD_CAST "arg");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                          BAD_CAST arg->name);
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "type",
+                                          BAD_CAST arg->type_signature);
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        if (!is_signal)
+        {
+            const xmlChar in_str[] = "in";
+            const xmlChar out_str[] = "out";
+            const xmlChar *str;
+            switch (arg->direction)
+            {
+                case WEECHAT_DBUS_ARGUMENT_DIRECTION_IN:
+                    str = &(in_str[0]);
+                    break;
+                case WEECHAT_DBUS_ARGUMENT_DIRECTION_OUT:
+                    str = &(out_str[0]);
+                    break;
+                default:
+                    return WEECHAT_RC_ERROR;
+            }
+
+            rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "direction",
+                                              str);
+            if (-1 == rc)
+            {
+                return WEECHAT_RC_ERROR;
+            }
+        }
+
+        rc = xmlTextWriterEndElement (writer);
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+    }
+
+    return WEECHAT_RC_OK;
+}

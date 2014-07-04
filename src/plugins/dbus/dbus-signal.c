@@ -126,3 +126,66 @@ weechat_dbus_signal_free(struct t_dbus_signal *signal)
     free (signal->name);
     free (signal);
 }
+
+int
+weechat_dbus_signal_introspect (struct t_dbus_signal *signal,
+                                xmlTextWriterPtr writer)
+{
+    int rc;
+    int res;
+    rc = xmlTextWriterStartElement (writer, BAD_CAST "signal");
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                      BAD_CAST signal->name);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    res = weechat_dbus_argument_list_introspect (signal->list, writer, true);
+    if (WEECHAT_RC_ERROR == res)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    if (signal->is_deprecated)
+    {
+        rc = xmlTextWriterStartElement (writer, BAD_CAST "annotation");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                          BAD_CAST "org.freedesktop.DBus.Deprecated");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "value",
+                                          BAD_CAST "true");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterEndElement (writer);
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+    }
+
+    rc = xmlTextWriterEndElement (writer);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    return WEECHAT_RC_OK;
+}

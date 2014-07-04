@@ -21,11 +21,14 @@
 #define WEECHAT_DBUS_INTERFACE_H 1
 
 #include <stdbool.h>
+#include <dbus/dbus.h>
+#include <libxml/xmlwriter.h>
 #include "dbus-method.h"
 #include "dbus-signal.h"
 #include "dbus-property.h"
 
 struct t_dbus_interface;
+struct t_dbus_object;
 
 struct t_dbus_interface *
 weechat_dbus_interface_new (const char *name,
@@ -51,5 +54,15 @@ weechat_dbus_interface_unref (struct t_dbus_interface *i);
 
 void
 weechat_dbus_interface_ref (const struct t_dbus_interface *i);
+
+DBusHandlerResult
+weechat_dbus_interface_handle_msg (const struct t_dbus_interface *i,
+                                   struct t_dbus_object *o,
+                                   DBusConnection *conn,
+                                   DBusMessage *msg);
+
+int
+weechat_dbus_interface_introspect (struct t_dbus_interface *i,
+                                   xmlTextWriterPtr writer);
 
 #endif /* WEECHAT_DBUS_INTERFACE_H */

@@ -23,6 +23,13 @@
 #include "dbus-interfaces-object-manager.h"
 #include "dbus-interface.h"
 
+static DBusHandlerResult
+weechat_dbus_interfaces_object_manager_get_managed_objects (struct t_dbus_object *o,
+                                                            DBusConnection *conn,
+                                                            DBusMessage *msg)
+{
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
 
 struct t_dbus_interface*
 weechat_dbus_interfaces_object_manager_new (void)
@@ -40,17 +47,22 @@ weechat_dbus_interfaces_object_manager_new (void)
     }
 
     /* org.freedesktop.DBus.ObjectManager.GetManagedObjects */
-    m = weechat_dbus_method_new ("GetManagedObjects", false, false);
+    m = weechat_dbus_method_new ("GetManagedObjects",
+                                 &weechat_dbus_interfaces_object_manager_get_managed_objects,
+                                 false, false);
     if (!m)
     {
         goto error;
     }
     /* DICT<OBJPATH,DICT<STRING,DICT<STRING,VARIANT>>> */
     res = weechat_dbus_method_add_arg(m, "objpath_interfaces_and_properties",
+                                      DBUS_TYPE_ARRAY_AS_STRING
                                       DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
                                       DBUS_TYPE_OBJECT_PATH_AS_STRING
+                                      DBUS_TYPE_ARRAY_AS_STRING
                                       DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
                                       DBUS_TYPE_STRING_AS_STRING
+                                      DBUS_TYPE_ARRAY_AS_STRING
                                       DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
                                       DBUS_TYPE_STRING_AS_STRING
                                       DBUS_TYPE_VARIANT_AS_STRING
@@ -85,8 +97,10 @@ weechat_dbus_interfaces_object_manager_new (void)
     }
     /* DICT<STRING,DICT<STRING,VARIANT>> */
     res = weechat_dbus_signal_add_arg (s, "interfaces_and_properties",
+                                       DBUS_TYPE_ARRAY_AS_STRING
                                        DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
                                        DBUS_TYPE_STRING_AS_STRING
+                                       DBUS_TYPE_ARRAY_AS_STRING
                                        DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
                                        DBUS_TYPE_STRING_AS_STRING
                                        DBUS_TYPE_VARIANT_AS_STRING

@@ -74,8 +74,11 @@ endif()
 
 if(ENABLE_DBUS)
   find_package(DBus)
+  find_package(LibXml2)
   if(DBUS_FOUND)
-    add_subdirectory( dbus )
+    if (LIBXML2_FOUND)
+      add_subdirectory( dbus )
+    endif(LIBXML2_FOUND)
   endif(DBUS_FOUND)
 endif(ENABLE_DBUS)
 

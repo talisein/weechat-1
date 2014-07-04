@@ -23,6 +23,29 @@
 #include "dbus-interfaces-properties.h"
 #include "dbus-interface.h"
 
+static DBusHandlerResult
+weechat_dbus_interfaces_properties_get (struct t_dbus_object *o,
+                                        DBusConnection *conn,
+                                        DBusMessage *msg)
+{
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static DBusHandlerResult
+weechat_dbus_interfaces_properties_set (struct t_dbus_object *o,
+                                        DBusConnection *conn,
+                                        DBusMessage *msg)
+{
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static DBusHandlerResult
+weechat_dbus_interfaces_properties_get_all (struct t_dbus_object *o,
+                                            DBusConnection *conn,
+                                            DBusMessage *msg)
+{
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
 
 struct t_dbus_interface*
 weechat_dbus_interfaces_properties_new (void)
@@ -40,30 +63,32 @@ weechat_dbus_interfaces_properties_new (void)
     }
 
     /* org.freedesktop.DBus.Properties.Get */
-    m = weechat_dbus_method_new ("Get", false, false);
+    m = weechat_dbus_method_new ("Get",
+                                 &weechat_dbus_interfaces_properties_get,
+                                 false, false);
     if (!m)
     {
         goto error;
     }
-    res = weechat_dbus_method_add_arg(m, "interface_name",
-                                          DBUS_TYPE_STRING_AS_STRING,
-                                          WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
+    res = weechat_dbus_method_add_arg (m, "interface_name",
+                                       DBUS_TYPE_STRING_AS_STRING,
+                                       WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
     if (WEECHAT_RC_ERROR == res)
     {
         weechat_dbus_method_free (m);
         goto error;
     }
-    res = weechat_dbus_method_add_arg(m, "property_name",
-                                      DBUS_TYPE_STRING_AS_STRING,
-                                      WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
+    res = weechat_dbus_method_add_arg (m, "property_name",
+                                       DBUS_TYPE_STRING_AS_STRING,
+                                       WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
     if (WEECHAT_RC_ERROR == res)
     {
         weechat_dbus_method_free (m);
         goto error;
     }
-    res = weechat_dbus_method_add_arg(m, "value",
-                                      DBUS_TYPE_VARIANT_AS_STRING,
-                                      WEECHAT_DBUS_ARGUMENT_DIRECTION_OUT);
+    res = weechat_dbus_method_add_arg (m, "value",
+                                       DBUS_TYPE_VARIANT_AS_STRING,
+                                       WEECHAT_DBUS_ARGUMENT_DIRECTION_OUT);
     if (WEECHAT_RC_ERROR == res)
     {
         weechat_dbus_method_free (m);
@@ -77,30 +102,32 @@ weechat_dbus_interfaces_properties_new (void)
     }
 
     /* org.freedesktop.DBus.Properties.Set */
-    m = weechat_dbus_method_new ("Set", false, false);
+    m = weechat_dbus_method_new ("Set",
+                                 &weechat_dbus_interfaces_properties_set,
+                                 false, false);
     if (!m)
     {
         goto error;
     }
-    res = weechat_dbus_method_add_arg(m, "interface_name",
-                                          DBUS_TYPE_STRING_AS_STRING,
-                                          WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
+    res = weechat_dbus_method_add_arg (m, "interface_name",
+                                       DBUS_TYPE_STRING_AS_STRING,
+                                       WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
     if (WEECHAT_RC_ERROR == res)
     {
         weechat_dbus_method_free (m);
         goto error;
     }
-    res = weechat_dbus_method_add_arg(m, "property_name",
-                                      DBUS_TYPE_STRING_AS_STRING,
-                                      WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
+    res = weechat_dbus_method_add_arg (m, "property_name",
+                                       DBUS_TYPE_STRING_AS_STRING,
+                                       WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
     if (WEECHAT_RC_ERROR == res)
     {
         weechat_dbus_method_free (m);
         goto error;
     }
-    res = weechat_dbus_method_add_arg(m, "value",
-                                      DBUS_TYPE_VARIANT_AS_STRING,
-                                      WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
+    res = weechat_dbus_method_add_arg (m, "value",
+                                       DBUS_TYPE_VARIANT_AS_STRING,
+                                       WEECHAT_DBUS_ARGUMENT_DIRECTION_IN);
     if (WEECHAT_RC_ERROR == res)
     {
         weechat_dbus_method_free (m);
@@ -114,7 +141,9 @@ weechat_dbus_interfaces_properties_new (void)
     }
 
     /* org.freedesktop.DBus.Properties.GetAll */
-    m = weechat_dbus_method_new ("GetAll", false, false);
+    m = weechat_dbus_method_new ("GetAll",
+                                 &weechat_dbus_interfaces_properties_get_all,
+                                 false, false);
     if (!m)
     {
         goto error;
@@ -128,6 +157,7 @@ weechat_dbus_interfaces_properties_new (void)
         goto error;
     }
     res = weechat_dbus_method_add_arg(m, "property_name",
+                                      DBUS_TYPE_ARRAY_AS_STRING
                                       DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
                                       DBUS_TYPE_STRING_AS_STRING
                                       DBUS_TYPE_VARIANT_AS_STRING
@@ -159,6 +189,7 @@ weechat_dbus_interfaces_properties_new (void)
         goto error;
     }
     res = weechat_dbus_signal_add_arg(s, "changed_properties",
+                                      DBUS_TYPE_ARRAY_AS_STRING
                                       DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
                                       DBUS_TYPE_STRING_AS_STRING
                                       DBUS_TYPE_VARIANT_AS_STRING

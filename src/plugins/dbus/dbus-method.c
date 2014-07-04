@@ -29,12 +29,14 @@ struct t_dbus_method
 {
     struct t_dbus_argument_list *list;
     char *name;
+    t_dbus_method_handler handler;
     bool is_deprecated;
     bool is_no_reply;
 };
 
 struct t_dbus_method *
 weechat_dbus_method_new (const char *name,
+                         t_dbus_method_handler handler,
                          bool is_deprecated,
                          bool is_no_reply)
 {
@@ -79,9 +81,10 @@ weechat_dbus_method_new (const char *name,
         return NULL;
     }
 
+    m->handler = handler;
     m->is_deprecated = is_deprecated;
     m->is_no_reply = is_no_reply;
-
+    
     return m;
 }
 
@@ -130,3 +133,103 @@ weechat_dbus_method_free (struct t_dbus_method *method)
     free (method);
 }
 
+DBusHandlerResult
+weechat_dbus_method_handle_msg (const struct t_dbus_method *method,
+                                struct t_dbus_object *o,
+                                DBusConnection *conn,
+                                DBusMessage *msg)
+{
+    return method->handler(o, conn, msg);
+}
+
+int
+weechat_dbus_method_introspect (struct t_dbus_method *method,
+                                xmlTextWriterPtr writer)
+{
+    int rc;
+    int res;
+    rc = xmlTextWriterStartElement (writer, BAD_CAST "method");
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                      BAD_CAST method->name);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    res = weechat_dbus_argument_list_introspect (method->list, writer, false);
+    if (WEECHAT_RC_ERROR == res)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    if (method->is_no_reply)
+    {
+        rc = xmlTextWriterStartElement (writer, BAD_CAST "annotation");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                          BAD_CAST "org.freedesktop.DBus.Method.NoReply");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "value",
+                                          BAD_CAST "true");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterEndElement (writer);
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+    }
+
+    if (method->is_deprecated)
+    {
+        rc = xmlTextWriterStartElement (writer, BAD_CAST "annotation");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                          BAD_CAST "org.freedesktop.DBus.Deprecated");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "value",
+                                          BAD_CAST "true");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterEndElement (writer);
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+    }
+
+    rc = xmlTextWriterEndElement (writer);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    return WEECHAT_RC_OK;
+}

@@ -21,6 +21,7 @@
 #define WEECHAT_DBUS_SIGNAL_H 1
 
 #include <stdbool.h>
+#include <libxml/xmlwriter.h>
 
 struct t_dbus_signal;
 
@@ -38,5 +39,9 @@ weechat_dbus_signal_get_name(const struct t_dbus_signal *signal);
 
 void
 weechat_dbus_signal_free (struct t_dbus_signal *signal);
+
+int
+weechat_dbus_signal_introspect (struct t_dbus_signal *signal,
+                                xmlTextWriterPtr writer);
 
 #endif /* WEECHAT_DBUS_SIGNAL_H */

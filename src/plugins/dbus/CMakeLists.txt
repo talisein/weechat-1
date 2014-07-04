@@ -33,17 +33,18 @@ dbus-interfaces-peer.c dbus-interfaces-peer.h
 dbus-interfaces-introspectable.c dbus-interfaces-introspectable.h
 dbus-interfaces-properties.c dbus-interfaces-properties.h
 dbus-interfaces-object-manager.c dbus-interfaces-object-manager.h
+dbus-interfaces-buffer.c dbus-interfaces-buffer.h
 dbus-methods-core.c dbus-methods-core.h
 )
 
 SET_TARGET_PROPERTIES(dbus PROPERTIES PREFIX "")
 
 IF(DBUS_FOUND)
-  INCLUDE_DIRECTORIES(${DBUS_INCLUDE_DIR} ${DBUS_ARCH_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${DBUS_INCLUDE_DIR} ${DBUS_ARCH_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR})
   SET(LINK_LIBS)
-  LIST(APPEND LINK_LIBS ${DBUS_LDFLAGS})
-  SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${DBUS_LFLAGS}")
-  TARGET_LINK_LIBRARIES(dbus ${LINK_LIBS} ${DBUS_LIBRARIES})
+  LIST(APPEND LINK_LIBS ${DBUS_LDFLAGS} ${LIBXML2_LDFLAGS})
+  SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${DBUS_LFLAGS} ${LIBXML2_LFLAGS}")
+  TARGET_LINK_LIBRARIES(dbus ${LINK_LIBS} ${DBUS_LIBRARIES} ${LIBXML2_LIBRARIES})
 ENDIF(DBUS_FOUND)
 
 INSTALL(TARGETS dbus LIBRARY DESTINATION ${LIBDIR}/plugins)

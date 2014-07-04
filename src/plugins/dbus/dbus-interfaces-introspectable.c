@@ -19,15 +19,96 @@
 
 #include <stdlib.h>
 #include <dbus/dbus.h>
+#include <libxml/encoding.h>
+#include <libxml/xmlwriter.h>
 #include "../weechat-plugin.h"
+#include "dbus.h"
 #include "dbus-interfaces-introspectable.h"
+#include "dbus-object.h"
 #include "dbus-interface.h"
+
+static DBusHandlerResult
+weechat_dbus_interfaces_introspectable_introspect (struct t_dbus_object *o,
+                                                   DBusConnection *conn,
+                                                   DBusMessage *msg)
+{
+    int rc;
+    dbus_bool_t res;
+    const int compression = 0;
+    xmlTextWriterPtr writer;
+    xmlBufferPtr buffer;
+
+    buffer = xmlBufferCreate();
+    writer = xmlNewTextWriterMemory(buffer, compression);
+
+    rc = xmlTextWriterStartDocument (writer, NULL, "UTF-8", "no");
+    if (-1 == rc)
+    {
+        goto error_xml;
+    }
+    rc = xmlTextWriterWriteDTD (writer,
+                                BAD_CAST "node",
+                                BAD_CAST DBUS_INTROSPECT_1_0_XML_PUBLIC_IDENTIFIER,
+                                BAD_CAST DBUS_INTROSPECT_1_0_XML_SYSTEM_IDENTIFIER,
+                                NULL);
+    if (-1 == rc)
+    {
+        goto error_xml;
+    }
+
+    if (WEECHAT_RC_ERROR == weechat_dbus_object_introspect (o, writer, true))
+    {
+        goto error_xml;
+    }
+
+    rc = xmlTextWriterEndDocument (writer);
+    if (-1 == rc)
+    {
+        goto error_xml;
+    }
+
+    const xmlChar *xmlstr = xmlBufferContent (buffer);
+    DBusMessage *reply = dbus_message_new_method_return (msg);
+    if (!reply)
+    {
+        xmlFreeTextWriter (writer);
+        xmlBufferFree (buffer);
+        goto error_msg;
+    }
+
+    res = dbus_message_append_args (reply,
+                                    DBUS_TYPE_STRING, &xmlstr,
+                                    DBUS_TYPE_INVALID);
+    if (res)
+    {
+        res = dbus_connection_send (conn, reply, NULL);
+    }
+
+
+    xmlFreeTextWriter (writer);
+    xmlBufferFree (buffer);
+
+    if (!res)
+    {
+        goto error_msg;
+    }
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+
+error_xml:
+    xmlFreeTextWriter (writer);
+    xmlBufferFree (buffer);
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+error_msg:
+    return DBUS_HANDLER_RESULT_NEED_MEMORY;
+}
 
 struct t_dbus_interface*
 weechat_dbus_interfaces_introspectable_new (void)
 {
     struct t_dbus_interface *iface;
-    iface = weechat_dbus_interface_new (WEECHAT_DBUS_INTERFACES_INTROSPECTABLE,
+    iface = weechat_dbus_interface_new (DBUS_INTERFACE_INTROSPECTABLE,
                                         false);
     if (NULL == iface)
     {
@@ -35,7 +116,9 @@ weechat_dbus_interfaces_introspectable_new (void)
     }
 
     struct t_dbus_method *m;
-    m = weechat_dbus_method_new ("Introspect", false, false);
+    m = weechat_dbus_method_new ("Introspect",
+                                 &weechat_dbus_interfaces_introspectable_introspect,
+                                 false, false);
     if (!m)
     {
         goto error;

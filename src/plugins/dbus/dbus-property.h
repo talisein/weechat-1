@@ -21,6 +21,7 @@
 #define WEECHAT_DBUS_PROPERTIES_H 1
 
 #include <stdbool.h>
+#include <libxml/xmlwriter.h>
 
 struct t_dbus_property;
 
@@ -50,5 +51,9 @@ weechat_dbus_property_get_name(const struct t_dbus_property *property);
 
 void
 weechat_dbus_property_free (struct t_dbus_property *property);
+
+int
+weechat_dbus_property_introspect (struct t_dbus_property *property,
+                                  xmlTextWriterPtr writer);
 
 #endif /* WEECHAT_DBUS_PROPERTIES_H */

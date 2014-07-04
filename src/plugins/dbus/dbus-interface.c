@@ -271,3 +271,168 @@ weechat_dbus_interface_ref (const struct t_dbus_interface *i)
 
     ++(*cnt);
 }
+
+DBusHandlerResult
+weechat_dbus_interface_handle_msg (const struct t_dbus_interface *i,
+                                   struct t_dbus_object *o,
+                                   DBusConnection *conn,
+                                   DBusMessage *msg)
+{
+    const char *member = dbus_message_get_member (msg);
+    if (!member)
+    {
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+
+    const struct t_dbus_method *m;
+    m = (const struct t_dbus_method *)weechat_hashtable_get (i->method_ht,
+                                                             member);
+    if (!m)
+    {
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+
+    return weechat_dbus_method_handle_msg (m, o, conn, msg);
+}
+
+struct _callback_data
+{
+    xmlTextWriterPtr writer;
+    bool had_error;
+};
+
+static void
+_introspect_method_callback(void *data,
+                            struct t_hashtable *hashtable,
+                            const void *key,
+                            const void *value)
+{
+    (void) hashtable;
+    (void) key;
+    struct _callback_data *callback_data = (struct _callback_data*)data;
+    struct t_dbus_method *m = (struct t_dbus_method *)value;
+
+    int res = weechat_dbus_method_introspect (m, callback_data->writer);
+    if (WEECHAT_RC_ERROR == res)
+    {
+        callback_data->had_error = true;
+    }
+}
+
+static void
+_introspect_signal_callback(void *data,
+                            struct t_hashtable *hashtable,
+                            const void *key,
+                            const void *value)
+{
+    (void) hashtable;
+    (void) key;
+    struct _callback_data *callback_data = (struct _callback_data*)data;
+    struct t_dbus_signal *s = (struct t_dbus_signal *)value;
+
+    int res = weechat_dbus_signal_introspect (s, callback_data->writer);
+    if (WEECHAT_RC_ERROR == res)
+    {
+        callback_data->had_error = true;
+    }
+}
+
+static void
+_introspect_property_callback(void *data,
+                              struct t_hashtable *hashtable,
+                              const void *key,
+                              const void *value)
+{
+    (void) hashtable;
+    (void) key;
+    struct _callback_data *callback_data = (struct _callback_data*)data;
+    struct t_dbus_property *p = (struct t_dbus_property *)value;
+
+    int res = weechat_dbus_property_introspect (p, callback_data->writer);
+    if (WEECHAT_RC_ERROR == res)
+    {
+        callback_data->had_error = true;
+    }
+}
+
+int
+weechat_dbus_interface_introspect (struct t_dbus_interface *i,
+                                   xmlTextWriterPtr writer)
+{
+    int rc;
+    rc = xmlTextWriterStartElement (writer, BAD_CAST "interface");
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer,
+                                       BAD_CAST "name",
+                                       BAD_CAST i->name);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    struct _callback_data data = {writer, false};
+    weechat_hashtable_map (i->method_ht,
+                           &_introspect_method_callback,
+                           &data);
+    if (data.had_error)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    weechat_hashtable_map (i->signal_ht,
+                           &_introspect_signal_callback,
+                           &data);
+    if (data.had_error)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    weechat_hashtable_map (i->property_ht,
+                           &_introspect_property_callback,
+                           &data);
+    if (data.had_error)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    if (i->is_deprecated)
+    {
+        rc = xmlTextWriterStartElement (writer, BAD_CAST "annotation");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                          BAD_CAST "org.freedesktop.DBus.Deprecated");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "value",
+                                          BAD_CAST "true");
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+
+        rc = xmlTextWriterEndElement (writer);
+        if (-1 == rc)
+        {
+            return WEECHAT_RC_ERROR;
+        }
+    }
+
+    rc = xmlTextWriterEndElement (writer);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    return WEECHAT_RC_OK;
+}

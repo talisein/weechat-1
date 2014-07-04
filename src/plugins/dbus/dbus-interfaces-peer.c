@@ -23,6 +23,69 @@
 #include "dbus-interfaces-peer.h"
 #include "dbus-interface.h"
 
+static DBusHandlerResult
+weechat_dbus_interfaces_peer_ping (struct t_dbus_object *o,
+                                   DBusConnection *conn,
+                                   DBusMessage *msg)
+{
+    (void) o;
+    dbus_bool_t res;
+    DBusMessage *reply = dbus_message_new_method_return (msg);
+    if (!reply)
+    {
+        return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    }
+
+    res = dbus_connection_send (conn, reply, NULL);
+
+    dbus_message_unref (reply);
+    if (!res)
+    {
+        return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    }
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult
+weechat_dbus_interfaces_peer_get_machine_id (struct t_dbus_object *o,
+                                             DBusConnection *conn,
+                                             DBusMessage *msg)
+{
+    (void) o;
+    dbus_bool_t res;
+
+    char *machine_id = dbus_get_local_machine_id ();
+    if (!machine_id)
+    {
+        return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    }
+
+    DBusMessage *reply = dbus_message_new_method_return (msg);
+    if (!reply)
+    {
+        dbus_free (machine_id);
+        return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    }
+
+    res = dbus_message_append_args (reply,
+                                    DBUS_TYPE_STRING, &machine_id,
+                                    DBUS_TYPE_INVALID);
+    if (res)
+    {
+        res = dbus_connection_send (conn, reply, NULL);
+    }
+
+    dbus_free (machine_id);
+    dbus_message_unref (reply);
+
+    if (!res)
+    {
+        return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    }
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+}
 
 struct t_dbus_interface*
 weechat_dbus_interfaces_peer_new (void)
@@ -35,7 +98,9 @@ weechat_dbus_interfaces_peer_new (void)
     }
 
     struct t_dbus_method *m;
-    m = weechat_dbus_method_new ("Ping", false, false);
+    m = weechat_dbus_method_new ("Ping",
+                                 &weechat_dbus_interfaces_peer_ping,
+                                 false, false);
     if (!m)
     {
         goto error;
@@ -48,7 +113,9 @@ weechat_dbus_interfaces_peer_new (void)
         goto error;
     }
 
-    m = weechat_dbus_method_new ("GetMachineId", false, false);
+    m = weechat_dbus_method_new ("GetMachineId",
+                                 &weechat_dbus_interfaces_peer_get_machine_id,
+                                 false, false);
     if (!m)
     {
         goto error;

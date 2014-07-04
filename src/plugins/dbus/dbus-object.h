@@ -20,6 +20,9 @@
 #ifndef WEECHAT_DBUS_OBJECT_H
 #define WEECHAT_DBUS_OBJECT_H 1
 
+#include <stdbool.h>
+#include <dbus/dbus.h>
+#include <libxml/xmlwriter.h>
 #include "dbus-interface.h"
 
 struct t_dbus_object;
@@ -45,4 +48,11 @@ weechat_dbus_object_unref (struct t_dbus_object *obj);
 void
 weechat_dbus_object_ref (const struct t_dbus_object *obj);
 
+int
+weechat_dbus_object_register (struct t_dbus_object *obj, DBusConnection *conn);
+
+int
+weechat_dbus_object_introspect (struct t_dbus_object *obj,
+                                xmlTextWriterPtr writer,
+                                bool is_root);
 #endif /* WEECHAT_DBUS_OBJECT_H */

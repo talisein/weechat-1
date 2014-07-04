@@ -33,6 +33,7 @@
 #include "dbus-infolist.h"
 #include "dbus-strings.h"
 #include "dbus-methods-core.h"
+#include "dbus-object-factory.h"
 
 WEECHAT_PLUGIN_NAME(DBUS_PLUGIN_NAME);
 WEECHAT_PLUGIN_DESCRIPTION(N_("Extension of WeeChat signals to DBus"));
@@ -175,6 +176,7 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
+    /* Hook signals. This is old code that will be removed. */
     if (0 < weechat_dbus_hook_signals (ctx))
     {
         weechat_printf (NULL,
@@ -183,6 +185,7 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
+    /* Register name on bus. TODO: register as org/weechat/1, or /2, etc. */
     dbus_bus_request_name (ctx->conn, WEECHAT_DBUS_NAME,
                           DBUS_NAME_FLAG_ALLOW_REPLACEMENT | DBUS_NAME_FLAG_DO_NOT_QUEUE,
                           &err);
@@ -195,7 +198,11 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
-    weechat_dbus_methods_core_register(ctx);
+    //weechat_dbus_methods_core_register(ctx);
+    struct t_gui_buffer *main_buffer = weechat_buffer_search_main ();
+    ctx->factory = weechat_dbus_object_factory_new ();
+    weechat_dbus_object_factory_make_buffer (ctx->factory, main_buffer, ctx->conn);
+
 
     return WEECHAT_RC_OK;
 error:
@@ -221,6 +228,7 @@ weechat_plugin_end (struct t_weechat_plugin *plugin)
     if (ctx->main) weechat_dbus_unhook_mainloop (ctx);
     dbus_bus_release_name (ctx->conn, WEECHAT_DBUS_NAME, NULL);
     if (ctx->sigctx) weechat_dbus_unhook_signals (ctx);
+    if (ctx->factory) weechat_dbus_object_factory_free (ctx->factory);
     if (ctx->conn) dbus_connection_unref (ctx->conn);
     free (ctx);
 
@@ -560,9 +568,11 @@ weechat_dbus_signal_cb_irc_inout (void *data,
     if (!msg)
         goto error;
 
-    if (!dbus_message_append_args (msg, DBUS_TYPE_STRING, &network,
-                                   DBUS_TYPE_STRING, &msgtype, DBUS_TYPE_STRING,
-                                   &str, DBUS_TYPE_INVALID))
+    if (!dbus_message_append_args (msg,
+                                   DBUS_TYPE_STRING, &network,
+                                   DBUS_TYPE_STRING, &msgtype,
+                                   DBUS_TYPE_STRING, &str,
+                                   DBUS_TYPE_INVALID))
     {
         dbus_message_unref (msg);
         goto error;

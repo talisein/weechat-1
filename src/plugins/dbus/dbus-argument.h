@@ -20,6 +20,9 @@
 #ifndef WEECHAT_DBUS_ARGUMENT_H
 #define WEECHAT_DBUS_ARGUMENT_H 1
 
+#include <stdbool.h>
+#include <libxml/xmlwriter.h>
+
 struct t_dbus_argument;
 
 enum t_dbus_argument_direction
@@ -47,4 +50,8 @@ weechat_dbus_argument_list_append (struct t_dbus_argument_list *list,
 void
 weechat_dbus_argument_list_free (struct t_dbus_argument_list *list);
 
+int
+weechat_dbus_argument_list_introspect (struct t_dbus_argument_list *list,
+                                       xmlTextWriterPtr writer,
+                                       bool is_signal);
 #endif /* WEECHAT_DBUS_ARGUMENT_H */

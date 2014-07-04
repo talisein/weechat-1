@@ -115,3 +115,106 @@ weechat_dbus_property_free (struct t_dbus_property *property)
     free (property);
 }
 
+int
+weechat_dbus_property_introspect (struct t_dbus_property *property,
+                                  xmlTextWriterPtr writer)
+{
+    int rc;
+    rc = xmlTextWriterStartElement (writer, BAD_CAST "property");
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                      BAD_CAST property->name);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "type",
+                                      BAD_CAST property->type_signature);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    const xmlChar str_rw[] = "readwrite";
+    const xmlChar str_r[] = "read";
+    const xmlChar str_w[] = "write";
+    const xmlChar *str;
+
+    switch (property->access)
+    {
+        case WEECHAT_DBUS_PROPERTY_ACCESS_READWRITE:
+            str = &(str_rw[0]);
+            break;
+        case WEECHAT_DBUS_PROPERTY_ACCESS_READ:
+            str = &(str_r[0]);
+            break;
+        case WEECHAT_DBUS_PROPERTY_ACCESS_WRITE:
+            str = &(str_w[0]);
+            break;
+        default:
+            return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "access",
+                                      str);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterStartElement (writer, BAD_CAST "annotation");
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+                                      BAD_CAST "org.freedesktop.DBus.Property.EmitsChangedSignal");
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    const xmlChar str_true[] = "true";
+    const xmlChar str_invalidates[] = "invalidates";
+    const xmlChar str_false[] = "false";
+    switch (property->emits_changed)
+    {
+        case WEECHAT_DBUS_ANNOTATION_PROPERTY_EMITS_CHANGED_SIGNAL_TRUE:
+            str = &(str_true[0]);
+            break;
+        case WEECHAT_DBUS_ANNOTATION_PROPERTY_EMITS_CHANGED_SIGNAL_INVALIDATES:
+            str = &(str_invalidates[0]);
+            break;
+        case WEECHAT_DBUS_ANNOTATION_PROPERTY_EMITS_CHANGED_SIGNAL_FALSE:
+            str = &(str_false[0]);
+            break;
+        default:
+            return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterWriteAttribute (writer, BAD_CAST "value", str);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterEndElement (writer);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    rc = xmlTextWriterEndElement (writer);
+    if (-1 == rc)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    return WEECHAT_RC_OK;
+}

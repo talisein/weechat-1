@@ -30,6 +30,7 @@
 #include "dbus-interfaces-introspectable.h"
 #include "dbus-interfaces-properties.h"
 #include "dbus-interfaces-object-manager.h"
+#include "dbus-interfaces-buffer.h"
 
 #define DBUS_BUFFER_ORIG_FULL_NAME_LOCALVAR "dbus_orig_full_name"
 
@@ -168,7 +169,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
 
     /* org.freedesktop.DBus.Peer */
     iface = weechat_hashtable_get (factory->interface_cache_ht,
-                                   WEECHAT_DBUS_INTERFACES_PEER);
+                                   DBUS_INTERFACE_PEER);
     if (NULL == iface)
     {
         iface = weechat_dbus_interfaces_peer_new ();
@@ -178,7 +179,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
         }
 
         item = weechat_hashtable_set (factory->interface_cache_ht,
-                                      WEECHAT_DBUS_INTERFACES_PEER, iface);
+                                      DBUS_INTERFACE_PEER, iface);
         if (!item)
         {
             weechat_dbus_interface_unref (iface);
@@ -194,7 +195,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
 
     /* org.freedesktop.DBus.Introspectable */
     iface = weechat_hashtable_get (factory->interface_cache_ht,
-                                   WEECHAT_DBUS_INTERFACES_INTROSPECTABLE);
+                                   DBUS_INTERFACE_INTROSPECTABLE);
 
     if (NULL == iface)
     {
@@ -205,7 +206,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
         }
 
         item = weechat_hashtable_set (factory->interface_cache_ht,
-                                      WEECHAT_DBUS_INTERFACES_INTROSPECTABLE,
+                                      DBUS_INTERFACE_INTROSPECTABLE,
                                       iface);
         if (!item)
         {
@@ -222,7 +223,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
 
     /* org.freedesktop.DBus.Properties */
     iface = weechat_hashtable_get (factory->interface_cache_ht,
-                                   WEECHAT_DBUS_INTERFACES_PROPERTIES);
+                                   DBUS_INTERFACE_PROPERTIES);
 
     if (NULL == iface)
     {
@@ -233,7 +234,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
         }
 
         item = weechat_hashtable_set (factory->interface_cache_ht,
-                                      WEECHAT_DBUS_INTERFACES_PROPERTIES,
+                                      DBUS_INTERFACE_PROPERTIES,
                                       iface);
         if (!item)
         {
@@ -280,26 +281,35 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
 
 int
 weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
-                                         struct t_gui_buffer *buffer)
+                                         struct t_gui_buffer *buffer,
+                                         DBusConnection* conn)
 {
     if (!factory || !buffer)
     {
         return WEECHAT_RC_ERROR;
     }
 
-    char path_prefix[] = "/org/weechat/buffer/";
+    int res;
+    struct t_dbus_object *o;
+    struct t_dbus_interface *iface;
+    struct t_hashtable_item *item;
+    const char path_prefix[] = "/org/weechat/Buffer/";
+    const char *full_name;
+    char *path;
+    char *buf;
+    size_t buf_size;
     size_t path_prefix_strlen = sizeof(path_prefix) - 1;
 
     /* create sanitized path name */
-    const char *full_name = weechat_buffer_get_string (buffer, "full_name");
-    size_t buf_size = path_prefix_strlen + strlen (full_name) + 1;
-    char *buf = malloc (buf_size);
+    full_name = weechat_buffer_get_string (buffer, "full_name");
+    buf_size = path_prefix_strlen + strlen (full_name) + 1;
+    buf = malloc (buf_size);
     if (!buf)
     {
         return WEECHAT_RC_ERROR;
     }
     snprintf (buf, buf_size, "%s%s", path_prefix, full_name);
-    char *path = _sanitize_dbus_path (buf);
+    path = _sanitize_dbus_path (buf);
     free (buf);
     if (!path)
     {
@@ -307,7 +317,6 @@ weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
     }
 
     /* Make the bare object */
-    struct t_dbus_object *o;
     o = weechat_dbus_object_new (NULL, path, full_name);
     free (path);
     if (!o)
@@ -320,15 +329,52 @@ weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
                         DBUS_BUFFER_ORIG_FULL_NAME_LOCALVAR,
                         full_name);
 
-    int res = _add_standard_interfaces (factory, o);
-    if (res == WEECHAT_RC_ERROR)
+    res = _add_standard_interfaces (factory, o);
+    if (WEECHAT_RC_ERROR == res)
     {
+        goto error;
+    }
+
+    
+    /* org.weechat.Buffer */
+    iface = weechat_hashtable_get (factory->interface_cache_ht,
+                                   WEECHAT_DBUS_INTERFACES_BUFFER);
+    if (NULL == iface)
+    {
+        iface = weechat_dbus_interfaces_buffer_new ();
+        if (NULL == iface)
+        {
+            goto error;
+        }
+
+        item = weechat_hashtable_set (factory->interface_cache_ht,
+                                      WEECHAT_DBUS_INTERFACES_BUFFER, iface);
+        if (!item)
+        {
+            weechat_dbus_interface_unref (iface);
+            goto error;
+        }
+    }
+
+    res = weechat_dbus_object_add_interface (o, iface);
+    if (WEECHAT_RC_ERROR == res)
+    {
+        weechat_dbus_interface_unref (iface);
+        goto error;
+    }
+
+    res = weechat_dbus_object_register (o, conn);
+    if (WEECHAT_RC_ERROR == res)
+    {
+        goto error;
+    }
+
+    return WEECHAT_RC_OK;
+
+error:
         weechat_dbus_object_unref (o);
         weechat_buffer_set (buffer, "localvar_del_"
                             DBUS_BUFFER_ORIG_FULL_NAME_LOCALVAR,
                             NULL);
         return WEECHAT_RC_ERROR;
-    }
-
-    return WEECHAT_RC_OK;
 }
