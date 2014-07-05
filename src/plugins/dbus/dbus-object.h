@@ -55,4 +55,9 @@ int
 weechat_dbus_object_introspect (struct t_dbus_object *obj,
                                 xmlTextWriterPtr writer,
                                 bool is_root);
+
+struct t_dbus_interface *
+weechat_dbus_object_get_interface (struct t_dbus_object *obj,
+                                   const char *interface_name);
+
 #endif /* WEECHAT_DBUS_OBJECT_H */

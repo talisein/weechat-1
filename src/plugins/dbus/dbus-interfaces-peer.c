@@ -91,7 +91,7 @@ struct t_dbus_interface*
 weechat_dbus_interfaces_peer_new (void)
 {
     struct t_dbus_interface *iface;
-    iface = weechat_dbus_interface_new (WEECHAT_DBUS_INTERFACES_PEER, false);
+    iface = weechat_dbus_interface_new (DBUS_INTERFACE_PEER, NULL, false);
     if (NULL == iface)
     {
         return NULL;

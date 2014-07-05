@@ -30,6 +30,7 @@ struct t_dbus_interface
     struct t_hashtable *method_ht;
     struct t_hashtable *signal_ht;
     struct t_hashtable *property_ht;
+    property_get_all_handler get_all_handler;
     char *name;
     size_t ref_cnt;
     bool is_deprecated;
@@ -68,6 +69,7 @@ weechat_dbus_interface_properties_free (struct t_hashtable *hashtable,
 
 struct t_dbus_interface *
 weechat_dbus_interface_new (const char *name,
+                            property_get_all_handler get_all_handler,
                             bool is_deprecated)
 {
     if (!name)
@@ -143,6 +145,7 @@ weechat_dbus_interface_new (const char *name,
     weechat_hashtable_set_pointer (i->property_ht, "callback_free_value",
                                   &weechat_dbus_interface_properties_free);
 
+    i->get_all_handler = get_all_handler;
     i->is_deprecated = is_deprecated;
     i->ref_cnt = 1;
 
@@ -206,6 +209,11 @@ weechat_dbus_interface_add_property(struct t_dbus_interface *i,
                                     struct t_dbus_property *p)
 {
     if (!i || !p)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    if (!i->get_all_handler)
     {
         return WEECHAT_RC_ERROR;
     }
@@ -435,4 +443,119 @@ weechat_dbus_interface_introspect (struct t_dbus_interface *i,
     }
 
     return WEECHAT_RC_OK;
+}
+
+DBusHandlerResult
+weechat_dbus_interface_property_get (struct t_dbus_interface *i,
+                                     struct t_dbus_object *o,
+                                     const char *property_name,
+                                     DBusConnection *conn,
+                                     DBusMessage *msg)
+{
+    struct t_dbus_property *prop;
+    dbus_bool_t res;
+
+    prop = weechat_hashtable_get (i->property_ht, property_name);
+    if (!prop)
+    {
+        DBusMessage *reply;
+        reply = dbus_message_new_error_printf (msg, DBUS_ERROR_UNKNOWN_PROPERTY,
+                                               "Unknown property: %s",
+                                               property_name);
+        if (!reply)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        res = dbus_connection_send (conn, reply, NULL);
+        dbus_message_unref (reply);
+        if (!res)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    return weechat_dbus_property_get (prop, o, i, conn, msg);
+}
+
+DBusHandlerResult
+weechat_dbus_interface_property_set (struct t_dbus_interface *i,
+                                     struct t_dbus_object *o,
+                                     const char *property_name,
+                                     DBusConnection *conn,
+                                     DBusMessage *msg,
+                                     DBusMessageIter *iter)
+{
+    struct t_dbus_property *prop;
+    dbus_bool_t res;
+
+    prop = weechat_hashtable_get (i->property_ht, property_name);
+    if (!prop)
+    {
+        DBusMessage *reply;
+        reply = dbus_message_new_error_printf (msg, DBUS_ERROR_UNKNOWN_PROPERTY,
+                                               "Unknown property: %s",
+                                               property_name);
+        if (!reply)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        res = dbus_connection_send (conn, reply, NULL);
+        dbus_message_unref (reply);
+        if (!res)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    return weechat_dbus_property_set (prop, o, i, conn, msg, iter);
+}
+
+DBusHandlerResult
+weechat_dbus_interface_property_get_all (struct t_dbus_interface *i,
+                                         struct t_dbus_object *o,
+                                         DBusConnection *conn,
+                                         DBusMessage *msg)
+{
+    int cnt = weechat_hashtable_get_integer (i->property_ht, "items_count");
+    if (0 == cnt)
+    {
+        DBusMessage *reply = dbus_message_new_method_return (msg);
+        if (!reply)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+        DBusMessageIter iter_top;
+        DBusMessageIter iter_array;
+        dbus_message_iter_init_append(reply, &iter_top);
+        if (!dbus_message_iter_open_container(&iter_top, DBUS_TYPE_ARRAY,
+                                              DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                                              DBUS_TYPE_STRING_AS_STRING
+                                              DBUS_TYPE_VARIANT_AS_STRING
+                                              DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+                                              &iter_array))
+        {
+            dbus_message_unref (reply);
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+        if (!dbus_message_iter_close_container (&iter_top, &iter_array))
+        {
+            dbus_message_unref (reply);
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+        dbus_bool_t res = dbus_connection_send (conn, reply, NULL);
+        dbus_message_unref (reply);
+        if (!res)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    return i->get_all_handler (i, o, conn, msg);
 }

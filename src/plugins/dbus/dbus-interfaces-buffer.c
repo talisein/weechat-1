@@ -20,7 +20,9 @@
 #include <stdlib.h>
 #include <dbus/dbus.h>
 #include "../weechat-plugin.h"
+#include "dbus.h"
 #include "dbus-interfaces-buffer.h"
+#include "dbus-object.h"
 #include "dbus-interface.h"
 
 static DBusHandlerResult
@@ -28,7 +30,72 @@ weechat_dbus_interfaces_buffer_command (struct t_dbus_object *o,
                                         DBusConnection *conn,
                                         DBusMessage *msg)
 {
-    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    DBusError err;
+    dbus_error_init (&err);
+    DBusMessage *reply;
+    const char *cmd;
+    dbus_bool_t res;
+
+    if (!dbus_message_get_args (msg, &err,
+                                DBUS_TYPE_STRING, &cmd,
+                                DBUS_TYPE_INVALID))
+    {
+        if (dbus_error_is_set (&err))
+        {
+            reply = dbus_message_new_error_printf (msg, DBUS_ERROR_INVALID_ARGS,
+                                                   WEECHAT_DBUS_INTERFACES_BUFFER
+                                                   ".Command requires signature "
+                                                   "s: %s",
+                                                   err.message);
+            dbus_error_free (&err);
+        }
+        else
+        {
+            reply = dbus_message_new_error_printf (msg, DBUS_ERROR_INVALID_ARGS,
+                                                   DBUS_INTERFACE_PROPERTIES
+                                                   ".GetAll requires signature s");
+        }
+        
+        if (!reply)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        res = dbus_connection_send (conn, reply, NULL);
+        dbus_message_unref (reply);
+        if (!res)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    const char *full_name = weechat_dbus_object_get_object (o);
+    struct t_gui_buffer *buf = weechat_buffer_search ("==", full_name);
+    if (!buf)
+    {
+        reply = dbus_message_new_error_printf (msg, DBUS_ERROR_FAILED,
+                                               "Unknown buffer name %s",
+                                               full_name);
+        if (!reply)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        res = dbus_connection_send (conn, reply, NULL);
+        dbus_message_unref (reply);
+        if (!res)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    weechat_command (buf, cmd);
+
+    return DBUS_HANDLER_RESULT_HANDLED;
 }
 
 
@@ -39,7 +106,9 @@ weechat_dbus_interfaces_buffer_new (void)
     struct t_dbus_method *m;
     int res;
 
-    iface = weechat_dbus_interface_new (WEECHAT_DBUS_INTERFACES_BUFFER, false);
+    iface = weechat_dbus_interface_new (WEECHAT_DBUS_INTERFACES_BUFFER,
+                                        NULL,
+                                        false);
     if (NULL == iface)
     {
         return NULL;

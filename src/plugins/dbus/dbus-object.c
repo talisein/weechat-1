@@ -375,3 +375,19 @@ weechat_dbus_object_introspect(struct t_dbus_object *obj,
 
     return WEECHAT_RC_OK;
 }
+
+struct t_dbus_interface *
+weechat_dbus_object_get_interface (struct t_dbus_object *obj,
+                                   const char *interface_name)
+{
+    if (!obj || !interface_name)
+    {
+        return NULL;
+    }
+
+    struct t_dbus_interface *iface;
+    iface = weechat_hashtable_get (obj->interface_ht, interface_name);
+    
+    return iface;
+}
+

@@ -109,6 +109,7 @@ weechat_dbus_interfaces_introspectable_new (void)
 {
     struct t_dbus_interface *iface;
     iface = weechat_dbus_interface_new (DBUS_INTERFACE_INTROSPECTABLE,
+                                        NULL,
                                         false);
     if (NULL == iface)
     {

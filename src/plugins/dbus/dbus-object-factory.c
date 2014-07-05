@@ -46,6 +46,9 @@ _sanitize_dbus_path(const char *);
 static int
 _add_standard_interfaces (struct t_dbus_object_factory *, struct t_dbus_object *);
 
+static int
+_hook_buffer_updates (struct t_dbus_object_factory *);
+
 static void
 weechat_dbus_object_factory_interfaces_free (struct t_hashtable *hashtable,
                                              const void *key, void *value)
@@ -250,6 +253,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
     }
 
     /* org.freedesktop.DBus.ObjectManager */
+    /*
     iface = weechat_hashtable_get (factory->interface_cache_ht,
                                    WEECHAT_DBUS_INTERFACES_OBJECT_MANAGER);
     if (NULL == iface)
@@ -275,6 +279,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
     {
         return WEECHAT_RC_ERROR;
     }
+    */
 
     return WEECHAT_RC_OK;
 }
@@ -378,3 +383,11 @@ error:
                             NULL);
         return WEECHAT_RC_ERROR;
 }
+
+static int
+_hook_buffer_updates (struct t_dbus_object_factory *factory)
+{
+    (void) factory;
+    return 0;
+}
+

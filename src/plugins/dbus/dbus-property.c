@@ -23,9 +23,13 @@
 #include "../weechat-plugin.h"
 #include "dbus.h"
 #include "dbus-property.h"
+#include "dbus-object.h"
+#include "dbus-interface.h"
 
 struct t_dbus_property
 {
+    property_getter getter;
+    property_setter setter;
     char *name;
     char *type_signature;
     enum t_dbus_property_access access;
@@ -36,11 +40,27 @@ struct t_dbus_property
 struct t_dbus_property *
 weechat_dbus_property_new(const char *name,
                           const char *type_signature,
+                          property_getter getter,
+                          property_setter setter,
                           enum t_dbus_property_access access,
                           enum t_dbus_annotation_property_emits_changed_signal emits_changed,
                           bool is_deprecated)
 {
     if (!name || !type_signature)
+    {
+        return NULL;
+    }
+
+    if (!getter &&
+        (access == WEECHAT_DBUS_PROPERTY_ACCESS_READ ||
+         access == WEECHAT_DBUS_PROPERTY_ACCESS_READWRITE))
+    {
+        return NULL;
+    }
+
+    if (!setter &&
+        (access == WEECHAT_DBUS_PROPERTY_ACCESS_WRITE ||
+         access == WEECHAT_DBUS_PROPERTY_ACCESS_READWRITE))
     {
         return NULL;
     }
@@ -84,6 +104,8 @@ weechat_dbus_property_new(const char *name,
         return NULL;
     }
 
+    p->getter = getter;
+    p->setter = setter;
     p->access = access;
     p->emits_changed = emits_changed;
     p->is_deprecated = is_deprecated;
@@ -217,4 +239,67 @@ weechat_dbus_property_introspect (struct t_dbus_property *property,
     }
 
     return WEECHAT_RC_OK;
+}
+
+DBusHandlerResult
+weechat_dbus_property_get (struct t_dbus_property *property,
+                           struct t_dbus_object *o,
+                           struct t_dbus_interface *i,
+                           DBusConnection *conn,
+                           DBusMessage *msg)
+{
+    if (property->access == WEECHAT_DBUS_PROPERTY_ACCESS_WRITE)
+    {
+        DBusMessage *reply;
+        reply = dbus_message_new_error_printf (msg, DBUS_ERROR_FAILED,
+                                               "Property %s is write only",
+                                               property->name);
+        if (!reply)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        dbus_bool_t res = dbus_connection_send (conn, reply, NULL);
+        dbus_message_unref (reply);
+        if (!res)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    return property->getter(property, o, i, conn, msg);
+}
+
+DBusHandlerResult
+weechat_dbus_property_set (struct t_dbus_property *property,
+                           struct t_dbus_object *o,
+                           struct t_dbus_interface *i,
+                           DBusConnection *conn,
+                           DBusMessage *msg,
+                           DBusMessageIter *iter)
+{
+    if (property->access == WEECHAT_DBUS_PROPERTY_ACCESS_READ)
+    {
+        DBusMessage *reply;
+        reply = dbus_message_new_error_printf (msg, DBUS_ERROR_PROPERTY_READ_ONLY,
+                                               "Property %s is read only",
+                                               property->name);
+        if (!reply)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        dbus_bool_t res = dbus_connection_send (conn, reply, NULL);
+        dbus_message_unref (reply);
+        if (!res)
+        {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    return property->setter(property, o, i, conn, msg, iter);
 }

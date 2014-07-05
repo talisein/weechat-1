@@ -20,8 +20,6 @@
 #ifndef WEECHAT_DBUS_INTERFACES_INTROSPECTABLE_H
 #define WEECHAT_DBUS_INTERFACES_INTROSPECTABLE_H 1
 
-#define WEECHAT_DBUS_INTERFACES_INTROSPECTABLE "org.freedesktop.DBus.Introspectable"
-
 struct t_dbus_interface;
 
 struct t_dbus_interface*

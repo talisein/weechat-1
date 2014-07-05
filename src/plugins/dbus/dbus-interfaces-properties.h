@@ -20,8 +20,6 @@
 #ifndef WEECHAT_DBUS_INTERFACES_PROPERTIES_H
 #define WEECHAT_DBUS_INTERFACES_PROPERTIES_H 1
 
-#define WEECHAT_DBUS_INTERFACES_PROPERTIES "org.freedesktop.DBus.Properties"
-
 struct t_dbus_interface;
 
 struct t_dbus_interface*

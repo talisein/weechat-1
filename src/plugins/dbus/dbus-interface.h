@@ -30,8 +30,14 @@
 struct t_dbus_interface;
 struct t_dbus_object;
 
+typedef DBusHandlerResult (*property_get_all_handler)(struct t_dbus_interface *i,
+                                                      struct t_dbus_object *o,
+                                                      DBusConnection *conn,
+                                                      DBusMessage *msg);
+
 struct t_dbus_interface *
 weechat_dbus_interface_new (const char *name,
+                            property_get_all_handler get_all_handler,
                             bool is_deprecated);
 
 int
@@ -64,5 +70,26 @@ weechat_dbus_interface_handle_msg (const struct t_dbus_interface *i,
 int
 weechat_dbus_interface_introspect (struct t_dbus_interface *i,
                                    xmlTextWriterPtr writer);
+
+DBusHandlerResult
+weechat_dbus_interface_property_get (struct t_dbus_interface *i,
+                                     struct t_dbus_object *o,
+                                     const char *property_name,
+                                     DBusConnection *conn,
+                                     DBusMessage *msg);
+
+DBusHandlerResult
+weechat_dbus_interface_property_set (struct t_dbus_interface *i,
+                                     struct t_dbus_object *o,
+                                     const char *property_name,
+                                     DBusConnection *conn,
+                                     DBusMessage *msg,
+                                     DBusMessageIter *iter);
+
+DBusHandlerResult
+weechat_dbus_interface_property_get_all (struct t_dbus_interface *i,
+                                         struct t_dbus_object *o,
+                                         DBusConnection *conn,
+                                         DBusMessage *msg);
 
 #endif /* WEECHAT_DBUS_INTERFACE_H */

@@ -199,10 +199,15 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
     }
 
     //weechat_dbus_methods_core_register(ctx);
-    struct t_gui_buffer *main_buffer = weechat_buffer_search_main ();
     ctx->factory = weechat_dbus_object_factory_new ();
-    weechat_dbus_object_factory_make_buffer (ctx->factory, main_buffer, ctx->conn);
-
+    struct t_hdata *buffer_hdata = weechat_hdata_get ("buffer");
+    struct t_gui_buffer *buffers = weechat_hdata_get_list (buffer_hdata,
+                                                           "gui_buffers");
+    while (buffers)
+    {
+        weechat_dbus_object_factory_make_buffer (ctx->factory, buffers, ctx->conn);
+        buffers = weechat_hdata_pointer (buffer_hdata, buffers, "next_buffer");
+    }
 
     return WEECHAT_RC_OK;
 error:

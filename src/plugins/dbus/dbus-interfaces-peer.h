@@ -20,8 +20,6 @@
 #ifndef WEECHAT_DBUS_INTERFACES_PEER_H
 #define WEECHAT_DBUS_INTERFACES_PEER_H 1
 
-#define WEECHAT_DBUS_INTERFACES_PEER "org.freedesktop.DBus.Peer"
-
 struct t_dbus_interface;
 
 struct t_dbus_interface*

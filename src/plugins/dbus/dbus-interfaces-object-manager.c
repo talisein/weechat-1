@@ -28,6 +28,9 @@ weechat_dbus_interfaces_object_manager_get_managed_objects (struct t_dbus_object
                                                             DBusConnection *conn,
                                                             DBusMessage *msg)
 {
+    (void) o;
+    (void) conn;
+    (void) msg;
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 
@@ -40,6 +43,7 @@ weechat_dbus_interfaces_object_manager_new (void)
     int res;
 
     iface = weechat_dbus_interface_new (WEECHAT_DBUS_INTERFACES_OBJECT_MANAGER,
+                                        NULL,
                                         false);
     if (NULL == iface)
     {

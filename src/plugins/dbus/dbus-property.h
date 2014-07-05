@@ -21,9 +21,12 @@
 #define WEECHAT_DBUS_PROPERTIES_H 1
 
 #include <stdbool.h>
+#include <dbus/dbus.h>
 #include <libxml/xmlwriter.h>
 
 struct t_dbus_property;
+struct t_dbus_interface;
+struct t_dbus_object;
 
 enum t_dbus_property_access
 {
@@ -39,9 +42,24 @@ enum t_dbus_annotation_property_emits_changed_signal
     WEECHAT_DBUS_ANNOTATION_PROPERTY_EMITS_CHANGED_SIGNAL_FALSE
 };
 
+typedef DBusHandlerResult (*property_getter)(struct t_dbus_property *prop,
+                                             struct t_dbus_object *o,
+                                             struct t_dbus_interface *i,
+                                             DBusConnection *conn,
+                                             DBusMessage *msg);
+
+typedef DBusHandlerResult (*property_setter)(struct t_dbus_property *prop,
+                                             struct t_dbus_object *o,
+                                             struct t_dbus_interface *i,
+                                             DBusConnection *conn,
+                                             DBusMessage *msg,
+                                             DBusMessageIter *iter);
+
 struct t_dbus_property *
 weechat_dbus_property_new(const char *name,
                           const char *type_signature,
+                          property_getter getter,
+                          property_setter setter,
                           enum t_dbus_property_access access,
                           enum t_dbus_annotation_property_emits_changed_signal emits_changed,
                           bool is_deprecated);
@@ -55,5 +73,20 @@ weechat_dbus_property_free (struct t_dbus_property *property);
 int
 weechat_dbus_property_introspect (struct t_dbus_property *property,
                                   xmlTextWriterPtr writer);
+
+DBusHandlerResult
+weechat_dbus_property_get (struct t_dbus_property *property,
+                           struct t_dbus_object *o,
+                           struct t_dbus_interface *i,
+                           DBusConnection *conn,
+                           DBusMessage *reply);
+
+DBusHandlerResult
+weechat_dbus_property_set (struct t_dbus_property *property,
+                           struct t_dbus_object *o,
+                           struct t_dbus_interface *i,
+                           DBusConnection *conn,
+                           DBusMessage *reply,
+                           DBusMessageIter *iter);
 
 #endif /* WEECHAT_DBUS_PROPERTIES_H */
