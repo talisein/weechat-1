@@ -32,6 +32,7 @@ struct t_dbus_object
     char                       *path;
     const void                 *obj;
     size_t                      ref_cnt;
+    DBusConnection             *conn;
 };
 
 static void
@@ -61,6 +62,7 @@ weechat_dbus_object_new (struct t_dbus_object *parent,
 {
     if (!path) return NULL;
 
+    int res;
     DBusError err;
     dbus_error_init (&err);
     if (!dbus_validate_path(path, &err))
@@ -113,6 +115,17 @@ weechat_dbus_object_new (struct t_dbus_object *parent,
     o->obj = obj;
     o->parent = parent;
     o->ref_cnt = 1;
+    o->conn = NULL;
+
+    if (parent)
+    {
+        res = weechat_dbus_object_add_child (parent, o);
+        if (WEECHAT_RC_OK != res)
+        {
+            weechat_dbus_object_unref (o);
+            return NULL;
+        }
+    }
 
     return o;
 }
@@ -194,6 +207,10 @@ weechat_dbus_object_unref (struct t_dbus_object *o)
 
     if (0 == o->ref_cnt)
     {
+        if (o->conn)
+        {
+            weechat_dbus_object_unregister (o);
+        }
         weechat_hashtable_free (o->interface_ht);
         weechat_hashtable_free (o->children_ht);
         free (o->path);
@@ -282,9 +299,27 @@ weechat_dbus_object_register (struct t_dbus_object *obj, DBusConnection *conn)
         return WEECHAT_RC_ERROR;
     }
 
+    obj->conn = conn;
     return WEECHAT_RC_OK;
 }
 
+int
+weechat_dbus_object_unregister (struct t_dbus_object *obj)
+{
+    if (!obj->conn)
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    if (!dbus_connection_unregister_object_path (obj->conn, obj->path))
+    {
+        return WEECHAT_RC_ERROR;
+    }
+
+    obj->conn = NULL;
+
+    return WEECHAT_RC_OK;
+}
 
 struct _callback_data
 {

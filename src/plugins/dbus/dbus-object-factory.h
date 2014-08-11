@@ -24,12 +24,14 @@ struct t_dbus_object_factory;
 struct t_gui_buffer;
 
 struct t_dbus_object_factory *
-weechat_dbus_object_factory_new (void);
+weechat_dbus_object_factory_new (DBusConnection *conn);
 
 void
 weechat_dbus_object_factory_free (struct t_dbus_object_factory *factory);
 
 int
 weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
-                                         struct t_gui_buffer *buffer,
-                                         DBusConnection *conn);
+                                         struct t_gui_buffer *buffer);
+
+int
+weechat_dbus_object_factory_make_all_buffers (struct t_dbus_object_factory *factory);

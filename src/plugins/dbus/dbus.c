@@ -127,6 +127,7 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
     /* make C compiler happy */
     (void) argc;
     (void) argv;
+    int rc;
 
     weechat_dbus_plugin = plugin;
 
@@ -145,7 +146,8 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
     }
 
     const char *busaddr = weechat_dbus_get_session_bus_address ();
-    if (!busaddr) {
+    if (!busaddr)
+    {
         weechat_printf (NULL,
                         _("%s%s: Error discovering DBus session address."),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME);
@@ -153,7 +155,8 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
     }
 
     ctx->conn = dbus_connection_open (busaddr, &err);
-    if (dbus_error_is_set (&err)) {
+    if (dbus_error_is_set (&err))
+    {
         weechat_printf (NULL,
                         _("%s%s: Error connecting to session DBus: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
@@ -167,7 +170,8 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
 
     /* Register on the session bus. Technically this is blocking... */
     dbus_bus_register (ctx->conn, &err);
-    if (dbus_error_is_set (&err)) {
+    if (dbus_error_is_set (&err))
+    {
         weechat_printf (NULL,
                         _("%s%s: Error registering to session DBus: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
@@ -189,7 +193,8 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
     dbus_bus_request_name (ctx->conn, WEECHAT_DBUS_NAME,
                           DBUS_NAME_FLAG_ALLOW_REPLACEMENT | DBUS_NAME_FLAG_DO_NOT_QUEUE,
                           &err);
-    if (dbus_error_is_set (&err)) {
+    if (dbus_error_is_set (&err))
+    {
         weechat_printf (NULL,
                         _("%s%s: Error registering as '%s' on DBus: %s"),
                         weechat_prefix ("error"), DBUS_PLUGIN_NAME,
@@ -198,19 +203,31 @@ weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
         goto error;
     }
 
-    //weechat_dbus_methods_core_register(ctx);
-    ctx->factory = weechat_dbus_object_factory_new ();
-    struct t_hdata *buffer_hdata = weechat_hdata_get ("buffer");
-    struct t_gui_buffer *buffers = weechat_hdata_get_list (buffer_hdata,
-                                                           "gui_buffers");
-    while (buffers)
+    ctx->factory = weechat_dbus_object_factory_new (ctx->conn);
+    if (!ctx->factory)
     {
-        weechat_dbus_object_factory_make_buffer (ctx->factory, buffers, ctx->conn);
-        buffers = weechat_hdata_pointer (buffer_hdata, buffers, "next_buffer");
+        weechat_printf (NULL,
+                        _("%s%s: Error creating dbus object factory"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        goto error;
+    }
+
+    rc = weechat_dbus_object_factory_make_all_buffers (ctx->factory);
+    if (WEECHAT_RC_OK != rc)
+    {
+        weechat_printf (NULL,
+                        _("%s%s: Error adding initial buffers"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME);
+        goto error;
     }
 
     return WEECHAT_RC_OK;
+
 error:
+    if (ctx->factory)
+    {
+        weechat_dbus_object_factory_free (ctx->factory);
+    }
     if (ctx->conn)
     {
         dbus_connection_unref (ctx->conn);

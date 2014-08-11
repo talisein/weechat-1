@@ -52,6 +52,9 @@ int
 weechat_dbus_object_register (struct t_dbus_object *obj, DBusConnection *conn);
 
 int
+weechat_dbus_object_unregister (struct t_dbus_object *obj);
+
+int
 weechat_dbus_object_introspect (struct t_dbus_object *obj,
                                 xmlTextWriterPtr writer,
                                 bool is_root);

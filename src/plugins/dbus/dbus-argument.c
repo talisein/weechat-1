@@ -183,7 +183,6 @@ weechat_dbus_argument_list_introspect (struct t_dbus_argument_list *list,
                                        bool is_signal)
 {
     int rc;
-    int res;
     struct t_dbus_argument *arg;
 
     for (arg = list->head; arg; arg = arg->next)

@@ -34,10 +34,17 @@
 
 #define DBUS_BUFFER_ORIG_FULL_NAME_LOCALVAR "dbus_orig_full_name"
 
+/* 18446744073709551615 is 20 characters. */
+#define SIZE_MAX_STRLEN 21
+
 struct t_dbus_object_factory
 {
-    struct t_hashtable *interface_cache_ht;
-    struct t_hashtable *buffers_ht;
+    DBusConnection       *conn;
+    struct t_hashtable   *interface_cache_ht;
+    struct t_hashtable   *buffers_ht;
+    struct t_dbus_object *root;
+    struct t_dbus_object *buffers;
+    size_t                buf_cnt;
 };
 
 static char *
@@ -60,8 +67,8 @@ weechat_dbus_object_factory_interfaces_free (struct t_hashtable *hashtable,
 }
 
 static void
-weechat_dbus_object_factory_buffers_free (struct t_hashtable *hashtable,
-                                          const void *key, void *value)
+weechat_dbus_object_factory_buffers_free_value (struct t_hashtable *hashtable,
+                                                const void *key, void *value)
 {
     (void) hashtable;
     (void) key;
@@ -69,9 +76,26 @@ weechat_dbus_object_factory_buffers_free (struct t_hashtable *hashtable,
     weechat_dbus_object_unref ((struct t_dbus_object*)value);
 }
 
-struct t_dbus_object_factory *
-weechat_dbus_object_factory_new (void)
+static void
+weechat_dbus_object_factory_buffers_free_key (struct t_hashtable *hashtable,
+                                              void *key, const void *value)
 {
+    (void) hashtable;
+    (void) value;
+
+    free (key);
+}
+
+struct t_dbus_object_factory *
+weechat_dbus_object_factory_new (DBusConnection *conn)
+{
+    int res;
+
+    if (!conn)
+    {
+        return NULL;
+    }
+
     struct t_dbus_object_factory *factory;
     factory = malloc (sizeof (struct t_dbus_object_factory));
     if (!factory)
@@ -79,12 +103,28 @@ weechat_dbus_object_factory_new (void)
         return NULL;
     }
 
+    factory->root = weechat_dbus_object_new (NULL, "/org/weechat", NULL);
+    if (!factory->root)
+    {
+        free (factory);
+        return NULL;
+    }
+
+    factory->buffers = weechat_dbus_object_new (factory->root, "/org/weechat/buffer", NULL);
+    if (!factory->buffers)
+    {
+        weechat_dbus_object_unref (factory->root);
+        free (factory);
+        return NULL;
+    }
     factory->interface_cache_ht = weechat_hashtable_new (32,
                                                          WEECHAT_HASHTABLE_STRING,
                                                          WEECHAT_HASHTABLE_POINTER,
                                                          NULL, NULL);
     if (!factory->interface_cache_ht)
     {
+        weechat_dbus_object_unref (factory->buffers);
+        weechat_dbus_object_unref (factory->root);
         free (factory);
         return NULL;
     }
@@ -94,6 +134,8 @@ weechat_dbus_object_factory_new (void)
                                                  NULL, NULL);
     if (!factory->buffers_ht)
     {
+        weechat_dbus_object_unref (factory->buffers);
+        weechat_dbus_object_unref (factory->root);
         weechat_hashtable_free (factory->interface_cache_ht);
         free (factory);
         return NULL;
@@ -104,7 +146,41 @@ weechat_dbus_object_factory_new (void)
                                    &weechat_dbus_object_factory_interfaces_free);
     weechat_hashtable_set_pointer (factory->buffers_ht,
                                    "callback_free_value",
-                                   &weechat_dbus_object_factory_buffers_free);
+                                   &weechat_dbus_object_factory_buffers_free_value);
+    weechat_hashtable_set_pointer (factory->buffers_ht,
+                                   "callback_free_key",
+                                   &weechat_dbus_object_factory_buffers_free_key);
+
+    factory->buf_cnt = 0;
+    factory->conn = conn;
+
+    res = _add_standard_interfaces (factory, factory->root);
+    if (WEECHAT_RC_OK != res)
+    {
+        weechat_dbus_object_factory_free (factory);
+        return NULL;
+    }
+
+    res = _add_standard_interfaces (factory, factory->buffers);
+    if (WEECHAT_RC_OK != res)
+    {
+        weechat_dbus_object_factory_free (factory);
+        return NULL;
+    }
+
+    res = weechat_dbus_object_register (factory->root, conn);
+    if (WEECHAT_RC_OK != res)
+    {
+        weechat_dbus_object_factory_free (factory);
+        return NULL;
+    }
+
+    res = weechat_dbus_object_register (factory->buffers, conn);
+    if (WEECHAT_RC_OK != res)
+    {
+        weechat_dbus_object_factory_free (factory);
+        return NULL;
+    }
 
     return factory;
 }
@@ -119,6 +195,8 @@ weechat_dbus_object_factory_free (struct t_dbus_object_factory *factory)
 
     weechat_hashtable_free (factory->interface_cache_ht);
     weechat_hashtable_free (factory->buffers_ht);
+    weechat_dbus_object_unref (factory->buffers);
+    weechat_dbus_object_unref (factory->root);
     free (factory);
 }
 
@@ -286,8 +364,7 @@ _add_standard_interfaces (struct t_dbus_object_factory *factory,
 
 int
 weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
-                                         struct t_gui_buffer *buffer,
-                                         DBusConnection* conn)
+                                         struct t_gui_buffer *buffer)
 {
     if (!factory || !buffer)
     {
@@ -298,34 +375,34 @@ weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
     struct t_dbus_object *o;
     struct t_dbus_interface *iface;
     struct t_hashtable_item *item;
-    const char path_prefix[] = "/org/weechat/Buffer/";
-    const char *full_name;
-    char *path;
-    char *buf;
-    size_t buf_size;
-    size_t path_prefix_strlen = sizeof(path_prefix) - 1;
-
-    /* create sanitized path name */
-    full_name = weechat_buffer_get_string (buffer, "full_name");
-    buf_size = path_prefix_strlen + strlen (full_name) + 1;
-    buf = malloc (buf_size);
-    if (!buf)
+    static const char   path_prefix[] = "/org/weechat/buffer/";
+    static const size_t path_size     = (SIZE_MAX_STRLEN + sizeof(path_prefix));
+    char path[path_size];
+    char *full_name = strdup (weechat_buffer_get_string (buffer, "full_name"));
+    if (!full_name)
     {
-        return WEECHAT_RC_ERROR;
-    }
-    snprintf (buf, buf_size, "%s%s", path_prefix, full_name);
-    path = _sanitize_dbus_path (buf);
-    free (buf);
-    if (!path)
-    {
+        weechat_printf (NULL,
+                        _("%s%s: Couldn't get buffer name for %p"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME, buffer);
         return WEECHAT_RC_ERROR;
     }
 
     /* Make the bare object */
-    o = weechat_dbus_object_new (NULL, path, full_name);
-    free (path);
+    res = snprintf (path, path_size, "%s%zu", path_prefix, factory->buf_cnt++);
+    if (res < 0 || (size_t)res >= path_size)
+    {
+        weechat_printf (NULL,
+                        _("%s%s: Not enough space to create path for buffer %s"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME, full_name);
+        return WEECHAT_RC_ERROR;
+    }
+
+    o = weechat_dbus_object_new (factory->buffers, path, full_name);
     if (!o)
     {
+        weechat_printf (NULL,
+                        _("%s%s: Unable to create dbus object for %s"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME, full_name);
         return WEECHAT_RC_ERROR;
     }
 
@@ -339,7 +416,6 @@ weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
     {
         goto error;
     }
-
     
     /* org.weechat.Buffer */
     iface = weechat_hashtable_get (factory->interface_cache_ht,
@@ -368,9 +444,21 @@ weechat_dbus_object_factory_make_buffer (struct t_dbus_object_factory *factory,
         goto error;
     }
 
-    res = weechat_dbus_object_register (o, conn);
+    res = weechat_dbus_object_register (o, factory->conn);
     if (WEECHAT_RC_ERROR == res)
     {
+        weechat_printf (NULL,
+                        _("%s%s: Unable to register dbus object for %s"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME, full_name);
+        goto error;
+    }
+
+    item = weechat_hashtable_set (factory->buffers_ht, full_name, o);
+    if (!item)
+    {
+        weechat_printf (NULL,
+                        _("%s%s: Unable to map dbus object for %s"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME, full_name);
         goto error;
     }
 
@@ -381,13 +469,120 @@ error:
         weechat_buffer_set (buffer, "localvar_del_"
                             DBUS_BUFFER_ORIG_FULL_NAME_LOCALVAR,
                             NULL);
+        free (full_name);
         return WEECHAT_RC_ERROR;
+}
+
+int
+weechat_dbus_object_factory_make_all_buffers (struct t_dbus_object_factory *factory)
+{
+    struct t_hdata *buffer_hdata = weechat_hdata_get ("buffer");
+    struct t_gui_buffer *buffers = weechat_hdata_get_list (buffer_hdata,
+                                                           "gui_buffers");
+    int rc;
+
+    while (buffers)
+    {
+        rc = weechat_dbus_object_factory_make_buffer (factory, buffers);
+        if (WEECHAT_RC_OK != rc)
+        {
+            const char *full_name = weechat_buffer_get_string (buffers, "full_name");
+            weechat_printf (NULL,
+                            _("%s%s: Error adding buffer %s"),
+                            weechat_prefix ("error"), DBUS_PLUGIN_NAME, full_name);
+
+            return WEECHAT_RC_ERROR;
+        }
+
+        buffers = weechat_hdata_pointer (buffer_hdata, buffers, "next_buffer");
+    }
+
+    return _hook_buffer_updates(factory);
+}
+
+static int
+_hook_buffer_opened_cb (void *data, const char *signal, const char *type_data, void *signal_data)
+{
+    (void) type_data;
+    (void) signal;
+
+    struct t_dbus_object_factory *factory = (struct t_dbus_object_factory*)data;
+    struct t_gui_buffer *buffer = (struct t_gui_buffer*)signal_data;
+
+    const char *full_name = weechat_buffer_get_string (buffer, "full_name");
+    weechat_printf (NULL, "Buffer %s opening...", full_name);
+
+    int rc = weechat_dbus_object_factory_make_buffer (factory, buffer);
+    if (WEECHAT_RC_OK != rc)
+    {
+        weechat_printf (NULL,
+                        _("%s%s: Error creating dbus object for buffer %s"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME, full_name);
+    }
+
+    return WEECHAT_RC_OK;
+}
+
+static int
+_hook_buffer_closing_cb (void *data, const char *signal, const char *type_data, void *signal_data)
+{
+    (void) type_data;
+    (void) signal;
+
+    struct t_dbus_object_factory *factory = (struct t_dbus_object_factory*)data;
+    struct t_gui_buffer *buffer = (struct t_gui_buffer*)signal_data;
+    const char *full_name = weechat_buffer_get_string (buffer, "full_name");
+
+    weechat_hashtable_remove (factory->buffers_ht, full_name);
+
+    return WEECHAT_RC_OK;
+}
+
+static int
+_hook_buffer_renamed_cb (void *data, const char *signal, const char *type_data, void *signal_data)
+{
+    (void) type_data;
+    (void) signal;
+
+    struct t_dbus_object_factory *factory = (struct t_dbus_object_factory*)data;
+    struct t_gui_buffer *buffer = (struct t_gui_buffer*)signal_data;
+    const char *new_name = weechat_buffer_get_string (buffer, "full_name");
+    const char *old_name = weechat_buffer_get_string (buffer, "localvar_"
+                                                      DBUS_BUFFER_ORIG_FULL_NAME_LOCALVAR);
+
+    struct t_dbus_object *object = weechat_hashtable_get (factory->buffers_ht, old_name);
+    if (!object)
+    {
+        weechat_printf (NULL,
+                        _("%s%s: Error renaming dbus object %s to %s"),
+                        weechat_prefix ("error"), DBUS_PLUGIN_NAME,
+                        old_name, new_name);
+        return WEECHAT_RC_OK;
+    }
+
+    /* ref so we don't unregister from bus when removed from ht */
+    weechat_dbus_object_ref (object);
+
+    /* Remove old name from ht, re-insert with new name */
+    weechat_hashtable_remove (factory->buffers_ht, old_name);
+    weechat_hashtable_set (factory->buffers_ht, new_name, object);
+    weechat_dbus_object_unref (object);
+
+    /* Set new name on buffer */
+    weechat_buffer_set (buffer, "localvar_set_"
+                        DBUS_BUFFER_ORIG_FULL_NAME_LOCALVAR,
+                        new_name);
+
+    return WEECHAT_RC_OK;
 }
 
 static int
 _hook_buffer_updates (struct t_dbus_object_factory *factory)
 {
-    (void) factory;
-    return 0;
+    weechat_hook_signal ("buffer_opened", &_hook_buffer_opened_cb, factory);
+    weechat_hook_signal ("buffer_closing", &_hook_buffer_closing_cb, factory);
+    weechat_hook_signal ("buffer_renamed", &_hook_buffer_renamed_cb, factory);
+
+    return WEECHAT_RC_OK;
 }
 
