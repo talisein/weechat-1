@@ -473,6 +473,10 @@ IRC_PROTOCOL_CALLBACK(authenticate)
                             IRC_PLUGIN_NAME,
                             sasl_error);
         }
+        else
+        {
+            server->sasl_mechanism_used = sasl_mechanism;
+        }
         irc_server_sendf (server, 0, NULL, "AUTHENTICATE %s", answer);
         free (answer);
     }
@@ -6414,6 +6418,8 @@ IRC_PROTOCOL_CALLBACK(sasl_end_ok)
                              date, nick, address, host, command,
                              ignored, argc, argv, argv_eol);
 
+    server->authentication_method = IRC_SERVER_AUTH_METHOD_SASL;
+
     if (!server->is_connected)
         irc_server_sendf (server, 0, NULL, "CAP END");
 
@@ -6438,6 +6444,8 @@ IRC_PROTOCOL_CALLBACK(sasl_end_fail)
         weechat_unhook (server->hook_timer_sasl);
         server->hook_timer_sasl = NULL;
     }
+
+    server->sasl_mechanism_used = -1;
 
     irc_protocol_cb_numeric (server,
                              date, nick, address, host, command,
